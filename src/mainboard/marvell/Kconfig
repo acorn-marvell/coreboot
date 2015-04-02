@@ -1,7 +1,7 @@
 ##
 ## This file is part of the coreboot project.
 ##
-## Copyright 2014 Google Inc.
+## Copyright (C) 2015 The ChromiumOS Authors
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -16,6 +16,25 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 ##
+if VENDOR_MARVELL
 
-source src/soc/marvell/bg4cd/Kconfig
-source src/soc/marvell/armada385/Kconfig
+# Auto select common options
+config VENDOR_SPECIFIC_OPTIONS
+	def_bool y
+	select CACHE_ROM
+
+choice
+	prompt "Mainboard model"
+
+config BOARD_MARVELL_ACORN
+	bool "Acorn"
+
+endchoice
+
+source "src/mainboard/marvell/acorn/Kconfig"
+
+config MAINBOARD_VENDOR
+	string "Mainboard Vendor"
+	default "MARVELL"
+
+endif # VENDOR_MARVELL

@@ -18,3 +18,4 @@
 ##
 
 subdirs-$(CONFIG_SOC_MARVELL_BG4CD) += bg4cd
+subdirs-$(CONFIG_SOC_MARVELL_ARMADA385) += armada385

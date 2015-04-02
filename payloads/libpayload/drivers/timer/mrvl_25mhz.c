@@ -28,15 +28,14 @@
 #include <libpayload.h>
 #include <libpayload-config.h>
 
-static uint32_t * const tegra_tmrus = (void *)CONFIG_LP_TIMER_TEGRA_1US_ADDRESS;
+static uint32_t * const mrvl_tmr = (void *)CONFIG_LP_TIMER_MRVL_25MHZ_ADDRESS;
 
 uint64_t timer_hz(void)
 {
-//	return 1000 * 1000;
-	return 25 * 1000 * 1000;
+	return 25000000;
 }
 
 uint64_t timer_raw_value(void)
 {
-	return readl(tegra_tmrus);
+	return readl(mrvl_tmr);
 }

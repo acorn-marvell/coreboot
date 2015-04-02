@@ -116,6 +116,7 @@ void console_init(void)
 void console_write(const void *buffer, size_t count)
 {
 	const char *ptr;
+#if 0
 	struct console_output_driver *out;
 	for (out = console_out; out != 0; out = out->next)
 		if (out->write)
@@ -123,6 +124,9 @@ void console_write(const void *buffer, size_t count)
 		else
 			for (ptr = buffer; (void *)ptr < buffer + count; ptr++)
 				out->putchar(*ptr);
+#endif
+	for (ptr = buffer; (void *)ptr < buffer + count; ptr++)
+               serial_putchar(*ptr);
 }
 
 int putchar(unsigned int i)

@@ -1,7 +1,7 @@
 ##
 ## This file is part of the coreboot project.
 ##
-## Copyright 2014 Google Inc.
+## Copyright 2014 SolidRun ltd.
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -17,5 +17,6 @@
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 ##
 
-source src/soc/marvell/bg4cd/Kconfig
-source src/soc/marvell/armada385/Kconfig
+chip soc/marvell/armada385
+	device cpu_cluster 0 on end
+end

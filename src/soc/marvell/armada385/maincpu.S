@@ -1,4 +1,6 @@
 /*
+ * This file is part of the coreboot project.
+ *
  * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,18 +27,30 @@
  * SUCH DAMAGE.
  */
 
-#include <libpayload.h>
-#include <libpayload-config.h>
+#include <arch/asm.h>
 
-static uint32_t * const tegra_tmrus = (void *)CONFIG_LP_TIMER_TEGRA_1US_ADDRESS;
+.arm
+ENTRY(maincpu_setup)
+	/*
+	 * Set the cpu to System mode with IRQ and FIQ disabled. Prefetch/Data
+	 * aborts may happen early and crash before the abort handlers are
+	 * installed, but at least the problem will show up near the code that
+	 * causes it.
+	 */
+	msr	cpsr_cxf, #0xdf
 
-uint64_t timer_hz(void)
-{
-//	return 1000 * 1000;
-	return 25 * 1000 * 1000;
-}
+	ldr	sp, maincpu_stack_pointer
+	eor	lr, lr
+	ldr	r0, maincpu_entry_point
+	bx	r0
+ENDPROC(maincpu_setup)
 
-uint64_t timer_raw_value(void)
-{
-	return readl(tegra_tmrus);
-}
+	.align 2
+
+	.global maincpu_stack_pointer
+maincpu_stack_pointer:
+	.word 0
+
+	.global maincpu_entry_point
+maincpu_entry_point:
+	.word 0

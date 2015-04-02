@@ -1,0 +1,118 @@
+config SOC_MARVELL_ARMADA385
+	bool
+	default n
+	select HAVE_UART_MEMORY_MAPPED
+	select HAVE_UART_SPECIAL
+	select BOOTBLOCK_CONSOLE
+	select EARLY_CONSOLE
+	select DYNAMIC_CBMEM
+	select ARM_BOOTBLOCK_CUSTOM
+	select ARCH_BOOTBLOCK_ARM_V4
+	select ARCH_VERSTAGE_ARM_V7
+	select ARCH_ROMSTAGE_ARM_V7
+	select ARCH_RAMSTAGE_ARM_V7
+
+if SOC_MARVELL_ARMADA385
+
+config BOOTBLOCK_CPU_INIT
+	string
+	default "soc/marvell/armada385/bootblock.c"
+	help
+	  CPU/SoC-specific bootblock code. This is useful if the
+	  bootblock must load microcode or copy data from ROM before
+	  searching for the bootblock.
+
+config BOOTBLOCK_ROM_OFFSET
+	hex
+	default 0x0
+
+config CBFS_HEADER_ROM_OFFSET
+	hex "offset of master CBFS header in ROM"
+	default 0x1e000 if VBOOT2_VERIFY_FIRMWARE
+	default 0x18000
+
+config CBFS_ROM_OFFSET
+	hex "offset of CBFS data in ROM"
+	default 0x1e080 if VBOOT2_VERIFY_FIRMWARE
+	default 0x18080
+
+config SYS_SDRAM_BASE
+	hex
+	default 0x00000000
+
+config BOOTBLOCK_BASE
+	hex
+	default 0x00000000
+
+config ROMSTAGE_BASE
+	hex
+	default 0x2002d000 if VBOOT2_VERIFY_FIRMWARE
+	default 0x2002c000
+
+config RAMSTAGE_BASE
+	hex
+	default 0x00200000
+
+config STACK_TOP
+	hex
+	default 0x20020000
+
+config STACK_BOTTOM
+	hex
+	default 0x2001c000
+
+# This is the ramstage thread stack, *not* the same as above! Currently unused.
+config STACK_SIZE
+	hex
+	default 0x800
+
+config TTB_BUFFER
+	hex "memory address of the TTB buffer"
+	default 0x20000000
+
+config CBFS_CACHE_ADDRESS
+	hex "memory address to put CBFS cache data"
+	default 0x20006000
+
+config CBFS_CACHE_SIZE
+	hex "size of CBFS cache data"
+	default 0x00016000
+
+config VBOOT_WORK_BUFFER_ADDRESS
+	hex "memory address of vboot work buffer"
+	default 0x20018000
+
+config VBOOT_WORK_BUFFER_SIZE
+	hex "size of vboot work buffer"
+	default 0x00004000
+
+config CBMEM_CONSOLE_PRERAM_BASE
+	hex "memory address of the CBMEM console buffer"
+	default 0x20004020
+
+choice CONSOLE_SERIAL_ARMADA385_UART_CHOICES
+	prompt "Serial Console UART"
+	default CONSOLE_SERIAL_UART0
+	depends on CONSOLE_SERIAL_UART
+
+config CONSOLE_SERIAL_UART0
+	bool "UART0"
+	help
+	  Serial console on UART 0.
+
+config CONSOLE_SERIAL_UART1
+	bool "UART1"
+	help
+	  Serial console on UART 1.
+
+endchoice
+
+config CONSOLE_SERIAL_UART_ADDRESS
+	hex
+	depends on CONSOLE_SERIAL_UART
+	default 0xf1012000 if CONSOLE_SERIAL_UART0
+	default 0xf1012100 if CONSOLE_SERIAL_UART1
+	help
+	  Map the UART names to the respective MMIO addres.
+
+endif
