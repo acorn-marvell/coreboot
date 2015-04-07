@@ -24,6 +24,7 @@
 #include <bootblock_common.h>
 #include <cbfs.h>
 #include <console/console.h>
+#include <delay.h>
 
 static void setup_pinmux(void)
 {
@@ -74,11 +75,11 @@ void main(void)
 		console_init();
 		exception_init();
 	}
+	init_timer();
 
 	bootblock_mainboard_init();
 
 	setup_pinmux(); /* This was previously under CONFIG_VBOTT2_VERIFY_FIRMWARE below */
-
 #if CONFIG_VBOOT2_VERIFY_FIRMWARE
 	configure_ec_spi_bus();
 	configure_tpm_i2c_bus();
