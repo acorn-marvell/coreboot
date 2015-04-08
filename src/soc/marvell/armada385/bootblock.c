@@ -26,30 +26,28 @@
 #include <console/console.h>
 #include <delay.h>
 
+#define A38x_CUSTOMER_BOARD_0_MPP0_7            0x00111111
+#define A38x_CUSTOMER_BOARD_0_MPP8_15           0x00600000
+#define A38x_CUSTOMER_BOARD_0_MPP16_23          0x11266005
+#define A38x_CUSTOMER_BOARD_0_MPP24_31          0x22222011
+#define A38x_CUSTOMER_BOARD_0_MPP32_39          0x22200002
+#define A38x_CUSTOMER_BOARD_0_MPP40_47          0x00000022
+#define A38x_CUSTOMER_BOARD_0_MPP48_55          0x55550555
+#define A38x_CUSTOMER_BOARD_0_MPP56_63          0x00005550
+
+
+
 static void setup_pinmux(void)
 {
 	/* Hard coded pin mux configuration */
-#if 1
-	/* Armada 385 DB AP board pin muxing */
-	* (volatile unsigned int *) 0xf1018000 = 0x11111111;
-	* (volatile unsigned int *) 0xf1018004 = 0x11111111;
-	* (volatile unsigned int *) 0xf1018008 = 0x55066011;
-	* (volatile unsigned int *) 0xf101800c = 0x05050050;
-	* (volatile unsigned int *) 0xf1018010 = 0x05055555;
-	* (volatile unsigned int *) 0xf1018014 = 0x01100565;
-	* (volatile unsigned int *) 0xf1018018 = 0x00000000;
-	* (volatile unsigned int *) 0xf101801c = 0x00004444;
-#else
-	/* Armada 385 RD board pin muxing */
-	* (volatile unsigned int *) 0xf1018000 = 0x11111111;
-	* (volatile unsigned int *) 0xf1018004 = 0x11111111;
-	* (volatile unsigned int *) 0xf1018008 = 0x11244011;
-	* (volatile unsigned int *) 0xf101800c = 0x22222111;
-	* (volatile unsigned int *) 0xf1018010 = 0x22200002;
-	* (volatile unsigned int *) 0xf1018014 = 0x30042022;
-	* (volatile unsigned int *) 0xf1018018 = 0x55550555;
-	* (volatile unsigned int *) 0xf101801c = 0x00005550;
-#endif
+	* (volatile unsigned int *) 0xf1018000 = A38x_CUSTOMER_BOARD_0_MPP0_7;
+	* (volatile unsigned int *) 0xf1018004 = A38x_CUSTOMER_BOARD_0_MPP8_15;
+	* (volatile unsigned int *) 0xf1018008 = A38x_CUSTOMER_BOARD_0_MPP16_23;
+	* (volatile unsigned int *) 0xf101800c = A38x_CUSTOMER_BOARD_0_MPP24_31;
+	* (volatile unsigned int *) 0xf1018010 = A38x_CUSTOMER_BOARD_0_MPP32_39;
+	* (volatile unsigned int *) 0xf1018014 = A38x_CUSTOMER_BOARD_0_MPP40_47;
+	* (volatile unsigned int *) 0xf1018018 = A38x_CUSTOMER_BOARD_0_MPP48_55;
+	* (volatile unsigned int *) 0xf101801c = A38x_CUSTOMER_BOARD_0_MPP48_55;
 }
 
 #if CONFIG_VBOOT2_VERIFY_FIRMWARE
