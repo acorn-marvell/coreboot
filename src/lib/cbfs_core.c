@@ -98,7 +98,7 @@ const struct cbfs_header *cbfs_get_header(struct cbfs_media *media)
 			size_t cbfs_top = CONFIG_CBFS_SIZE;
 			DEBUG("CBFS top at offset: 0x%zx\n", cbfs_top);
 			if (!media->read(media, &rel_offset, cbfs_top -
-					 sizeof(int32_t),
+					 sizeof(int32_t)*2,
 					 sizeof(int32_t))) {
 				ERROR("Could not read master header offset!\n");
 				media->close(media);

@@ -217,7 +217,7 @@ int cbfs_image_create(struct cbfs_image *image,
 	// relies on this also being its (memory-mapped, top-aligned) absolute
 	// 32-bit address by virtue of how two's complement numbers work.
 	assert(size % sizeof(int32_t) == 0);
-	rel_offset = (int32_t *)(image->buffer.data + size - sizeof(int32_t));
+	rel_offset = (int32_t *)(image->buffer.data + size - sizeof(int32_t)*2);
 	*rel_offset = header_offset - size;
 
 	// Prepare entries
