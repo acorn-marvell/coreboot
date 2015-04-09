@@ -28,7 +28,7 @@
  * SUCH DAMAGE.
  */
 
-//#define XHCI_SPEW_DEBUG
+#define XHCI_SPEW_DEBUG
 
 #include <inttypes.h>
 #include <arch/virtual.h>

@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  */
 
-//#define USB_DEBUG
+#define USB_DEBUG
 
 #include <libpayload-config.h>
 #include <usb/usb.h>
