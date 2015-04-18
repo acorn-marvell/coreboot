@@ -35,26 +35,6 @@ static void __attribute__((noinline)) romstage(void)
 	console_init();
 	exception_init();
 
-#if 0
-        /* used for MMU and CBMEM setup, in MB */
-        u32 dram_start = (CONFIG_SYS_SDRAM_BASE >> 20);
-        u32 dram_end = 2048/*1024*/;//sdram_max_addressable_mb();      /* plus one... */
-        u32 dram_size = dram_end - dram_start;
-#endif
-	mmu_init();
-#if 0
-	/* DRAM is cached. */
-	mmu_config_range(dram_start, dram_size, DCACHE_WRITEBACK);
-	/* Everything beyond the memory is uncached */
-	mmu_config_range(dram_end, 4096-dram_end, DCACHE_OFF);
-#else
-	/* For simpliciy, set everything uncached */
-	mmu_config_range(0,4096, DCACHE_OFF);
-#endif
-
-#if 0 /* MMU is disabled for now */
-	dcache_mmu_enable();
-#endif
 	cbmem_initialize_empty();
 
 	timestamp_init(0);
