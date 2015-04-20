@@ -47,7 +47,7 @@ static void setup_pinmux(void)
 	* (volatile unsigned int *) 0xf1018010 = A38x_CUSTOMER_BOARD_0_MPP32_39;
 	* (volatile unsigned int *) 0xf1018014 = A38x_CUSTOMER_BOARD_0_MPP40_47;
 	* (volatile unsigned int *) 0xf1018018 = A38x_CUSTOMER_BOARD_0_MPP48_55;
-	* (volatile unsigned int *) 0xf101801c = A38x_CUSTOMER_BOARD_0_MPP48_55;
+	* (volatile unsigned int *) 0xf101801c = A38x_CUSTOMER_BOARD_0_MPP56_63;
 }
 
 #if CONFIG_VBOOT2_VERIFY_FIRMWARE
