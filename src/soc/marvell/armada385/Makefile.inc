@@ -43,7 +43,12 @@ BIN_HDR_UART = $(src)/soc/marvell/armada385/bin_header/bin_hdr.uart.bin
 CB_SPI = $(obj)/generated/coreboot.spi.rom
 CB_NAND = $(obj)/generated/coreboot.nand.rom
 CB_UART = $(obj)/generated/coreboot.uart.rom
+CB_UART_PLUS = $(obj)/generated/coreboot.uart.plus.rom
+CB_UIMAGE = $(obj)/generated/coreboot_uimage
+CB_UIMAGE_SPI = $(obj)/generated/coreboot_uimage.spi.rom
 DOIMAGE = $(src)/soc/marvell/armada385/bin_header/doimage
+UIMAGE = $(src)/soc/marvell/armada385/bin_header/uImage.armada
+UBOOT = $(src)/soc/marvell/armada385/bin_header/u-boot.bin
 bootable: coreboot
 	echo "Generating SPI bootable image"
 	rm -rf $(CB_SPI)
@@ -54,3 +59,8 @@ bootable: coreboot
 	echo "Generating UART bootable image"
 	rm -rf $(CB_UART)
 	$(DOIMAGE) -T uart -D 0 -E 0 -G $(BIN_HDR_UART) $(obj)/coreboot.rom $(CB_UART)
+	echo "Generating UART+ bootable image"
+	rm -rf $(CB_UART_PLUS) $(CB_UIMAGE) $(CB_UIMAGE_SPI)
+	cat $(obj)/coreboot.rom $(UIMAGE) > $(CB_UIMAGE)
+	$(DOIMAGE) -T flash -D 0 -E 0 -G $(BIN_HDR) $(CB_UIMAGE) $(CB_UIMAGE_SPI)
+	$(DOIMAGE) -T uart -D 0 -E 0 -s $(CB_UIMAGE_SPI) -G $(BIN_HDR_UART) $(UBOOT) $(CB_UART_PLUS)
