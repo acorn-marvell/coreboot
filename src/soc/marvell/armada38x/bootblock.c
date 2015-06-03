@@ -18,57 +18,55 @@
  */
 
 #include <assert.h>
+#include <arch/cache.h>
 #include <arch/exception.h>
 #include <arch/hlt.h>
 #include <bootblock_common.h>
 #include <cbfs.h>
 #include <console/console.h>
-#include <timestamp.h>
+#include <delay.h>
+
+#define A38x_CUSTOMER_BOARD_0_MPP0_7            0x00111111
+#define A38x_CUSTOMER_BOARD_0_MPP8_15           0x00600000
+#define A38x_CUSTOMER_BOARD_0_MPP16_23          0x11266005
+#define A38x_CUSTOMER_BOARD_0_MPP24_31          0x22222011
+#define A38x_CUSTOMER_BOARD_0_MPP32_39          0x22200002
+#define A38x_CUSTOMER_BOARD_0_MPP40_47          0x00000022
+#define A38x_CUSTOMER_BOARD_0_MPP48_55          0x55550555
+#define A38x_CUSTOMER_BOARD_0_MPP56_63          0x00005550
+
+
+
+static void setup_pinmux(void)
+{
+	/* Hard coded pin mux configuration */
+	* (volatile unsigned int *) 0xf1018000 = A38x_CUSTOMER_BOARD_0_MPP0_7;
+	* (volatile unsigned int *) 0xf1018004 = A38x_CUSTOMER_BOARD_0_MPP8_15;
+	* (volatile unsigned int *) 0xf1018008 = A38x_CUSTOMER_BOARD_0_MPP16_23;
+	* (volatile unsigned int *) 0xf101800c = A38x_CUSTOMER_BOARD_0_MPP24_31;
+	* (volatile unsigned int *) 0xf1018010 = A38x_CUSTOMER_BOARD_0_MPP32_39;
+	* (volatile unsigned int *) 0xf1018014 = A38x_CUSTOMER_BOARD_0_MPP40_47;
+	* (volatile unsigned int *) 0xf1018018 = A38x_CUSTOMER_BOARD_0_MPP48_55;
+	* (volatile unsigned int *) 0xf101801c = A38x_CUSTOMER_BOARD_0_MPP56_63;
+}
+
 #include <vendorcode/google/chromeos/chromeos.h>
 
 void main(void)
 {
-	void *entry;
-
-	// enable pinmux clamp inputs
-	clamp_tristate_inputs();
-
-	// enable JTAG at the earliest stage
-	enable_jtag();
-
-	clock_early_uart();
-
-	// Serial out, tristate off.
-	pinmux_set_config(PINMUX_KB_ROW9_INDEX, PINMUX_KB_ROW9_FUNC_UA3);
-	// Serial in, tristate_on.
-	pinmux_set_config(PINMUX_KB_ROW10_INDEX, PINMUX_KB_ROW10_FUNC_UA3 |
-						 PINMUX_PULL_UP |
-						 PINMUX_INPUT_ENABLE);
-	// Mux some pins away from uart A.
-	pinmux_set_config(PINMUX_UART2_CTS_N_INDEX,
-			  PINMUX_UART2_CTS_N_FUNC_UB3 |
-			  PINMUX_INPUT_ENABLE);
-	pinmux_set_config(PINMUX_UART2_RTS_N_INDEX,
-			  PINMUX_UART2_RTS_N_FUNC_UB3);
-
+	volatile unsigned int reg;
+	void (*entry)(void);
+	* (volatile unsigned int *) 0xd0020080 = 0xf1000000; /* Remap internal registers to 0xf1000000 */
+	reg = * (unsigned int *) 0xf1000000; /* Forces read from the just newly remapped registers offset */
 	if (CONFIG_BOOTBLOCK_CONSOLE) {
 		console_init();
 		exception_init();
 	}
-
-	clock_init();
-
-	timestamp_early_init(0);
+	init_timer();
 
 	bootblock_mainboard_init();
 
-	pinmux_set_config(PINMUX_CORE_PWR_REQ_INDEX,
-			  PINMUX_CORE_PWR_REQ_FUNC_PWRON);
-	pinmux_set_config(PINMUX_CPU_PWR_REQ_INDEX,
-			  PINMUX_CPU_PWR_REQ_FUNC_CPU);
-	pinmux_set_config(PINMUX_PWR_INT_N_INDEX,
-			  PINMUX_PWR_INT_N_FUNC_PMICINTR |
-			  PINMUX_INPUT_ENABLE);
+	setup_pinmux(); /* This was previously under CONFIG_VBOTT2_VERIFY_FIRMWARE below */
 
 	if (IS_ENABLED(CONFIG_VBOOT2_VERIFY_FIRMWARE))
 		entry = cbfs_load_stage(CBFS_DEFAULT_MEDIA,
