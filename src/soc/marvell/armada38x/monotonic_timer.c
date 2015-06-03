@@ -18,10 +18,9 @@
  */
 
 #include <arch/io.h>
-#include <soc/addressmap.h>
 #include <timer.h>
 
 void timer_monotonic_get(struct mono_time *mt)
 {
-	mono_time_set_usecs(mt, read32((void *)TEGRA_TMRUS_BASE));
+	mono_time_set_usecs(mt, 0);
 }

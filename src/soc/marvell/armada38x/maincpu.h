@@ -17,17 +17,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __SOC_NVIDIA_TEGRA124_SDRAM_H__
-#define __SOC_NVIDIA_TEGRA124_SDRAM_H__
+#ifndef __SOC_MARVELL_ARMADA38X_MAINCPU_H__
+#define __SOC_MARVELL_ARMADA38X_MAINCPU_H__
 
-#include <soc/sdram_param.h>
+#include <stdint.h>
 
-uint32_t sdram_get_ram_code(void);
-void sdram_init(const struct sdram_params *param);
-int sdram_size_mb(void);
-uintptr_t sdram_max_addressable_mb(void);
+extern u32 maincpu_stack_pointer;
+extern u32 maincpu_entry_point;
+void maincpu_setup(void);
 
-/* Save params to PMC scratch registers for use by BootROM on LP0 resume. */
-void sdram_lp0_save_params(const struct sdram_params *sdram);
-
-#endif /* __SOC_NVIDIA_TEGRA124_SDRAM_H__ */
+#endif	/* __SOC_MARVELL_ARMADA38X_MAINCPU_H__ */

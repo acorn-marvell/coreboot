@@ -23,10 +23,6 @@
 #include <bootblock_common.h>
 #include <cbfs.h>
 #include <console/console.h>
-#include <soc/clock.h>
-#include <soc/nvidia/tegra/apbmisc.h>
-#include <soc/pinmux.h>
-#include <soc/power.h>
 #include <timestamp.h>
 #include <vendorcode/google/chromeos/chromeos.h>
 
@@ -82,14 +78,5 @@ void main(void)
 					CONFIG_CBFS_PREFIX "/romstage");
 
 	ASSERT(entry);
-	clock_cpu0_config(entry);
-
-	power_enable_and_ungate_cpu();
-
-	/* Repair ram on cluster0 and cluster1 after CPU is powered on. */
-	ram_repair();
-
-	clock_cpu0_remove_reset();
-
-	clock_halt_avp();
+	entry();
 }
