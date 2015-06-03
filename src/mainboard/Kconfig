@@ -199,6 +199,7 @@ source "src/mainboard/tyan/Kconfig"
 source "src/mainboard/via/Kconfig"
 source "src/mainboard/winent/Kconfig"
 source "src/mainboard/wyse/Kconfig"
+source "src/mainboard/marvell/Kconfig"
 
 config BOARD_ROMSIZE_KB_64
 	bool
