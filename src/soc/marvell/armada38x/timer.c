@@ -17,12 +17,22 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __SOC_MARVELL_ARMADA38X_CHIP_H__
-#define __SOC_MARVELL_ARMADA38X_CHIP_H__
-#include <arch/cache.h>
+#include <console/console.h>
+#include <timer.h>
+#include <delay.h>
+#include <thread.h>
 
-struct soc_marvell_armada38x_config {
-	/* TBD */
-};
+void init_timer(void)
+{
+	unsigned int reg;
+	/* Set the reload timer */
+	* (volatile unsigned int *) 0xf1020310 = 0xffffffff;
+	/* And the initial value */
+	* (volatile unsigned int *) 0xf1020314 = 0xffffffff;
+	reg = * (volatile unsigned int *)0xf1020300;
+	/* Let it start counting */
+	reg |= 0x3;
+	* (volatile unsigned int *)0xf1020300 = reg;
+}
 
-#endif /* __SOC_MARVELL_ARMADA38X_CHIP_H__ */
+

@@ -27,7 +27,7 @@
 ## SUCH DAMAGE.
 ##
 
-CFLAGS += -mthumb -march=armv7-a
+CFLAGS += -mthumb -march=armv7-a -mno-unaligned-access
 arm_asm_flags = -Wa,-mthumb -Wa,-mimplicit-it=always -Wa,-mno-warn-deprecated
 
 head.o-y += head.S

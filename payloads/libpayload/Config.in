@@ -386,6 +386,9 @@ config TIMER_NONE
 config TIMER_MCT
 	bool "Exynos MCT"
 
+config TIMER_MRVL_25MHZ
+	bool "Marvell 25mhz"
+
 config TIMER_TEGRA_1US
 	bool "Tegra 1us"
 
@@ -420,6 +423,11 @@ config TIMER_RK_ADDRESS
 	hex "Rockchip timer base address"
 	depends on TIMER_RK
 	default 0xff810020
+
+config TIMER_MRVL_25MHZ_ADDRESS
+	hex "Marvell 25mhz timer base address"
+	depends on TIMER_MRVL_25MHZ
+	default 0x60005010
 
 config TIMER_TEGRA_1US_ADDRESS
 	hex "Tegra u1s timer base address"

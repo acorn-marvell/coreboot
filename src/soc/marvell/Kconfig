@@ -18,3 +18,4 @@
 ##
 
 source src/soc/marvell/bg4cd/Kconfig
+source src/soc/marvell/armada38x/Kconfig

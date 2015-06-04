@@ -3,6 +3,7 @@ bootblock-y += bootblock_asm.S
 bootblock-y += cbfs.c
 bootblock-y += maincpu.S
 bootblock-y += monotonic_timer.c
+bootblock-y += timer.c
 ifeq ($(CONFIG_BOOTBLOCK_CONSOLE),y)
 bootblock-$(CONFIG_CONSOLE_SERIAL_UART) += uart.c
 endif
@@ -10,10 +11,12 @@ endif
 verstage-y += verstage.c
 verstage-y += cbfs.c
 verstage-y += monotonic_timer.c
+verstage-y += timer.c
 
 romstage-y += cbfs.c
 romstage-y += cbmem.c
 romstage-y += monotonic_timer.c
+romstage-y += timer.c
 ifeq ($(CONFIG_EARLY_CONSOLE),y)
 romstage-$(CONFIG_CONSOLE_SERIAL_UART) += uart.c
 endif
