@@ -194,6 +194,8 @@ xhci_set_address (hci_t *controller, usb_speed speed, int hubport, int hubaddr)
 	}
 
 	dev->endpoints[0].maxpacketsize = usb_decode_mps0(speed, buf[7]);
+	dev->endpoints[0].maxpacketsize = dev->endpoints[0].maxpacketsize>512?512:dev->endpoints[0].maxpacketsize;
+	printf("maxpacketsize: %d\n", dev->endpoints[0].maxpacketsize);
 	if (dev->endpoints[0].maxpacketsize != 8) {
 		memset((void *)ic->dev.ep0, 0x00, ctxsize);
 		*ic->add = (1 << 1); /* EP0 Context */
