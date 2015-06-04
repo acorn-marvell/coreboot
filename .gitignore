@@ -30,7 +30,7 @@ util/crossgcc/w32api-*/
 util/crossgcc/xgcc/
 
 *.\#
-*.bin
+#*.bin
 *.debug
 *.elf
 *.o

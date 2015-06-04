@@ -132,6 +132,8 @@ config VENDOR_WINENT
 	bool "Win Enterprises"
 config VENDOR_WYSE
 	bool "Wyse"
+config VENDOR_MARVELL
+       bool "Marvell"
 
 endchoice
 
