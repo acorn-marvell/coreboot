@@ -20,5 +20,16 @@
 
 subdirs-y += spd
 
-romstage-y += fsp.c
+romstage-$(CONFIG_CHROMEOS) += chromeos.c
 romstage-$(CONFIG_ENABLE_BUILTIN_COM1) += com_init.c
+
+ramstage-$(CONFIG_CHROMEOS) += chromeos.c
+ramstage-y += ec.c
+ramstage-$(CONFIG_CHROMEOS) += gpio.c
+ramstage-$(CONFIG_CHROMEOS) += gpio_dvt.c
+ramstage-y += irqroute.c
+ramstage-y += ramstage.c
+ramstage-y += w25q64.c
+ramstage-y += boardid.c
+
+smm-$(CONFIG_HAVE_SMI_HANDLER) += smihandler.c

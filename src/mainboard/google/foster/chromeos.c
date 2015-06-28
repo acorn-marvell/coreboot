@@ -30,10 +30,12 @@ void fill_lb_gpios(struct lb_gpios *gpios)
 {
 	int count = 0;
 
+	/* TBD(twarren@nvidia.com): Any analogs for these on Foster-FFD? */
+
 	/* Write Protect: active low */
-	gpios->gpios[count].port = GPIO(R1);
+	gpios->gpios[count].port = -1;
 	gpios->gpios[count].polarity = ACTIVE_LOW;
-	gpios->gpios[count].value = gpio_get(GPIO(R1));
+	gpios->gpios[count].value = get_write_protect_state();
 	strncpy((char *)gpios->gpios[count].name, "write protect",
 		GPIO_MAX_NAME_LENGTH);
 	count++;
@@ -46,15 +48,8 @@ void fill_lb_gpios(struct lb_gpios *gpios)
 		GPIO_MAX_NAME_LENGTH);
 	count++;
 
-	/* Lid: active high */
-	gpios->gpios[count].port = GPIO(R4);
-	gpios->gpios[count].polarity = ACTIVE_HIGH;
-	gpios->gpios[count].value = -1;
-	strncpy((char *)gpios->gpios[count].name, "lid", GPIO_MAX_NAME_LENGTH);
-	count++;
-
-	/* Power: active low */
-	gpios->gpios[count].port = GPIO(Q0);
+	/* TODO: Power: active low / high depending on board id */
+	gpios->gpios[count].port = GPIO(X5);
 	gpios->gpios[count].polarity = ACTIVE_LOW;
 	gpios->gpios[count].value = -1;
 	strncpy((char *)gpios->gpios[count].name, "power",
@@ -69,7 +64,7 @@ void fill_lb_gpios(struct lb_gpios *gpios)
 		GPIO_MAX_NAME_LENGTH);
 	count++;
 
-	/* Reset: active low (output) */
+	/* TODO: Reset: active low (output) */
 	gpios->gpios[count].port = GPIO(I5);
 	gpios->gpios[count].polarity = ACTIVE_LOW;
 	gpios->gpios[count].value = -1;
@@ -90,14 +85,18 @@ int get_developer_mode_switch(void)
 
 int get_recovery_mode_switch(void)
 {
+#if CONFIG_EC_GOOGLE_CHROMEEC
 	uint32_t ec_events;
 
 	ec_events = google_chromeec_get_events_b();
 	return !!(ec_events &
 		  EC_HOST_EVENT_MASK(EC_HOST_EVENT_KEYBOARD_RECOVERY));
+#else
+	return 0;
+#endif
 }
 
 int get_write_protect_state(void)
 {
-	return !gpio_get(GPIO(R1));
+	return 0;
 }

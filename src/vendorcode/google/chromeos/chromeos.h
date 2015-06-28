@@ -32,6 +32,7 @@ int get_recovery_mode_switch(void);
 int clear_recovery_mode_switch(void);
 int get_write_protect_state(void);
 int get_wipeout_mode_switch(void);
+int get_lid_switch(void);
 
 #ifdef __ROMSTAGE__
 void __attribute__((weak)) save_chromeos_gpios(void);
@@ -116,5 +117,6 @@ static inline void chromeos_reserve_ram_oops(struct device *dev, int idx) {}
 #endif /* CONFIG_CHROMEOS_RAMOOPS */
 
 void cbmem_add_vpd_calibration_data(void);
+void vboot_reboot(void);
 
 #endif /* __CHROMEOS_H__ */

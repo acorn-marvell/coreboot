@@ -18,6 +18,7 @@
  */
 
 #include <device/device.h>
+#include <soc/cygnus.h>
 #include <soc/sdram.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@
 static void soc_init(device_t dev)
 {
 	ram_resource(dev, 0, (uintptr_t)_dram/KiB, sdram_size_mb()*(MiB/KiB));
+	usb_init();
 }
 
 static void soc_noop(device_t dev)

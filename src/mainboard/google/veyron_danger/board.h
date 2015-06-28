@@ -17,15 +17,18 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __MAINBOARD_GOOGLE_VEYRON_BRAIN_BOARD_H
-#define __MAINBOARD_GOOGLE_VEYRON_BRAIN_BOARD_H
+#ifndef __MAINBOARD_GOOGLE_VEYRON_DANGER_BOARD_H
+#define __MAINBOARD_GOOGLE_VEYRON_DANGER_BOARD_H
 
 #include <boardid.h>
 #include <gpio.h>
 
 #define GPIO_BACKLIGHT	GPIO(7, A, 3)
 #define GPIO_RESET	GPIO(0, B, 5)
+#define GPIO_LCDC_BL	GPIO(7, A, 7)
 
+void sdmmc_power_off(void);
+void sdmmc_power_on(void);
 void setup_chromeos_gpios(void);
 
-#endif	/* __MAINBOARD_GOOGLE_VEYRON_BRAIN_BOARD_H */
+#endif	/* __MAINBOARD_GOOGLE_VEYRON_DANGER_BOARD_H */

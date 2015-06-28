@@ -42,7 +42,10 @@ are permitted provided that the following conditions are met:
 #include <MdePkg/Include/Pi/PiFirmwareVolume.h>
 #include <MdePkg/Include/Uefi/UefiMultiPhase.h>
 #include <MdePkg/Include/Pi/PiHob.h>
+#include <MdePkg/Include/Protocol/GraphicsOutput.h>
 #include <MdePkg/Include/Library/HobLib.h>
+#include <MdePkg/Include/Guid/FirmwareFileSystem2.h>
+#include <MdePkg/Include/IndustryStandard/PeImage.h>
 
 ///
 /// For GNU assembly code, .global or .globl can declare global symbols.
@@ -71,12 +74,33 @@ static inline void debug_dead_loop(void)
 	} while (FALSE)
 
 //
+// Contents of the PEI_GRAPHICS_INFO_HOB
+//
+typedef struct  {
+	EFI_PHYSICAL_ADDRESS FrameBufferBase;
+	UINT64 FrameBufferSize;
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION GraphicsMode;
+} EFI_PEI_GRAPHICS_INFO_HOB;
+
+//
 // Define the known GUIDs
 //
+#define EFI_PEI_GRAPHICS_INFO_HOB_GUID				\
+{								\
+	0x39f62cce, 0x6825, 0x4669,				\
+	{ 0xbb, 0x56, 0x54, 0x1a, 0xba, 0x75, 0x3a, 0x07 }	\
+}
+
 #define FSP_BOOTLOADER_TEMP_MEMORY_HOB_GUID			\
 {								\
 	0xbbcff46c, 0xc8d3, 0x4113,				\
 	{0x89, 0x85, 0xb9, 0xd4, 0xf3, 0xb3, 0xf6, 0x4e}	\
+}
+
+#define FSP_BOOTLOADER_TOLUM_HOB_GUID				\
+{								\
+	0x73ff4f56, 0xaa8e, 0x4451,				\
+	{ 0xb3, 0x16, 0x36, 0x35, 0x36, 0x67, 0xad, 0x44 }	\
 }
 
 #define FSP_INFO_HEADER_GUID					\
@@ -95,6 +119,12 @@ static inline void debug_dead_loop(void)
 {								\
 	0x69a79759, 0x1373, 0x4367,				\
 	{ 0xa6, 0xc4, 0xc7, 0xf5, 0x9e, 0xfd, 0x98, 0x6e }	\
+}
+
+#define FSP_SMBIOS_MEMORY_INFO_GUID				\
+{								\
+	0x01a1108c, 0x9dee, 0x4984,				\
+	{ 0x88, 0xc3, 0xee, 0xe8, 0xc4, 0x9e, 0xfb, 0x89 }	\
 }
 
 #endif	/* __UEFI_TYPES_H__*/

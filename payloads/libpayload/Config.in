@@ -412,6 +412,9 @@ config TIMER_CYGNUS
 config TIMER_IMG_PISTACHIO
 	bool "Timer for IMG Pistachio"
 
+config TIMER_MTK
+	bool "Timer for MediaTek MT8173"
+
 endchoice
 
 config TIMER_MCT_HZ
@@ -459,6 +462,20 @@ config IPROC_PERIPH_GLB_TIM_REG_BASE
 	depends on TIMER_CYGNUS
 	default 0x19020200
 
+config TIMER_MTK_HZ
+	int "MediaTek GPT frequency"
+	depends on TIMER_MTK
+	default 13000000
+	help
+	  Clock frequency of MediaTek General Purpose Timer.
+
+config TIMER_MTK_ADDRESS
+	hex "MTK GPT register address"
+	depends on TIMER_MTK
+	default 0x10008048
+	help
+	  Address of GPT4's counter register to read the FREERUN-mode timer value.
+
 config USB
 	bool "USB Support"
 	default n
@@ -489,6 +506,12 @@ config USB_XHCI
 	help
 	  Select this option if you want to use USB 3.0
 	  NOTE: This option is not (fully) implemented yet
+
+config USB_XHCI_MTK_QUIRK
+	bool "Support for USB xHCI controllers on MTK SoC"
+	depends on USB_XHCI
+	help
+	  Select this option if you want to use USB 3.0 on MTK platform.
 
 config USB_DWC2
 	bool "Support for USB DesignWare HCD controllers"
@@ -557,6 +580,14 @@ config UDC_CI
 	default n
 	help
 	  Select this option to add the driver for ChipIdea
+	  USB device controller.
+
+config UDC_DWC2
+	bool "Designware driver for USB device mode"
+	depends on UDC
+	default n
+	help
+	  Select this option to add the driver for Designware
 	  USB device controller.
 
 endmenu

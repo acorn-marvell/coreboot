@@ -18,10 +18,23 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <cbmem.h>
+#include <stddef.h>
 #include <arch/early_variables.h>
 #include <arch/cpu.h>
+#include <arch/io.h>
+#include <arch/cbfs.h>
+#include <arch/stages.h>
+#include <chip.h>
 #include <cpu/x86/mtrr.h>
 #include <console/console.h>
+#include <device/device.h>
+#include <device/pci_def.h>
+#if IS_ENABLED(CONFIG_EC_GOOGLE_CHROMEEC)
+#include <ec/google/chromeec/ec.h>
+#include <ec/google/chromeec/ec_commands.h>
+#endif
+#include <elog.h>
 #include <romstage_handoff.h>
 #include <timestamp.h>
 #include <ramstage_cache.h>
@@ -29,7 +42,6 @@
 #include <vendorcode/google/chromeos/chromeos.h>
 #include <fsp_util.h>
 #include <soc/intel/common/mrc_cache.h>
-
 #include <soc/gpio.h>
 #include <soc/iomap.h>
 #include <soc/iosf.h>
@@ -38,16 +50,6 @@
 #include <soc/romstage.h>
 #include <soc/smm.h>
 #include <soc/spi.h>
-
-#include <rmodule.h>
-int get_recovery_mode_from_vbnv(void)
-{
-	return 0;
-}
-int rmodule_stage_load_from_cbfs(struct rmod_stage_load *rsl)
-{
-	return 0;
-}
 
 void program_base_addresses(void)
 {
@@ -77,7 +79,7 @@ void program_base_addresses(void)
 	pci_write_config32(lpc_dev, GBASE, reg);
 }
 
-void spi_init(void)
+static void spi_init(void)
 {
 	void *scs = (void *)(SPI_BASE_ADDRESS + SCS);
 	void *bcr = (void *)(SPI_BASE_ADDRESS + BCR);
@@ -128,6 +130,13 @@ struct chipset_power_state *fill_power_state(void)
 
 	ps->prev_sleep_state = chipset_prev_sleep_state(ps);
 
+	printk(BIOS_DEBUG, "pm1_sts: %04x pm1_en: %04x pm1_cnt: %08x\n",
+		ps->pm1_sts, ps->pm1_en, ps->pm1_cnt);
+	printk(BIOS_DEBUG, "gpe0_sts: %08x gpe0_en: %08x tco_sts: %08x\n",
+		ps->gpe0_sts, ps->gpe0_en, ps->tco_sts);
+	printk(BIOS_DEBUG, "prsts: %08x gen_pmcon1: %08x gen_pmcon2: %08x\n",
+		ps->prsts, ps->gen_pmcon1, ps->gen_pmcon2);
+	printk(BIOS_DEBUG, "prev_sleep_state %d\n", ps->prev_sleep_state);
 	return ps;
 }
 
@@ -139,6 +148,11 @@ int chipset_prev_sleep_state(struct chipset_power_state *ps)
 
 	if (ps->pm1_sts & WAK_STS) {
 		switch ((ps->pm1_cnt & SLP_TYP) >> SLP_TYP_SHIFT) {
+	#if IS_ENABLED(CONFIG_HAVE_ACPI_RESUME)
+		case SLP_TYP_S3:
+			prev_sleep_state = SLEEP_STATE_S3;
+			break;
+	#endif
 		case SLP_TYP_S5:
 			prev_sleep_state = SLEEP_STATE_S5;
 			break;
@@ -156,6 +170,10 @@ int chipset_prev_sleep_state(struct chipset_power_state *ps)
 
 void ramstage_cache_invalid(struct ramstage_cache *cache)
 {
+#if IS_ENABLED(CONFIG_RESET_ON_INVALID_RAMSTAGE_CACHE)
+	/* Perform cold reset on invalid ramstage cache. */
+	hard_reset();
+#endif
 }
 
 /* SOC initialization before the console is enabled */
@@ -171,7 +189,6 @@ void soc_romstage_init(struct romstage_params *params)
 {
 	/* Continue chipset initialization */
 	spi_init();
-	gfx_init();
 
 #if IS_ENABLED(CONFIG_EC_GOOGLE_CHROMEEC)
 	/* Ensure the EC is in the right mode for recovery */
@@ -191,11 +208,52 @@ void soc_after_ram_init(struct romstage_params *params)
 	iosf_bunit_write(BUNIT_BMISC, value);
 }
 
-/* SOC initialization after FSP silicon init */
-__attribute__((weak)) void soc_after_silicon_init(void)
+/* Initialize the UPD parameters for MemoryInit */
+void soc_memory_init_params(MEMORY_INIT_UPD *params)
 {
-	printk(BIOS_ERR, "Hanging in soc_after_silicon_init!\n");
-	post_code(0x35);
-	while (1)
-		;
+	const struct device *dev;
+	const struct soc_intel_braswell_config *config;
+
+	/* Set the parameters for MemoryInit */
+	dev = dev_find_slot(0, PCI_DEVFN(LPC_DEV, LPC_FUNC));
+	config = dev->chip_info;
+	printk(BIOS_DEBUG, "Updating UPD values for MemoryInit\n");
+	params->PcdMrcInitTsegSize = IS_ENABLED(CONFIG_HAVE_SMI_HANDLER) ?
+		config->PcdMrcInitTsegSize : 0;
+	params->PcdMrcInitMmioSize = config->PcdMrcInitMmioSize;
+	params->PcdMrcInitSpdAddr1 = config->PcdMrcInitSpdAddr1;
+	params->PcdMrcInitSpdAddr2 = config->PcdMrcInitSpdAddr2;
+	params->PcdIgdDvmt50PreAlloc = config->PcdIgdDvmt50PreAlloc;
+	params->PcdApertureSize = config->PcdApertureSize;
+	params->PcdGttSize = config->PcdGttSize;
+	params->PcdLegacySegDecode = config->PcdLegacySegDecode;
+}
+
+void soc_display_memory_init_params(const MEMORY_INIT_UPD *old,
+	MEMORY_INIT_UPD *new)
+{
+	/* Display the parameters for MemoryInit */
+	printk(BIOS_SPEW, "UPD values for MemoryInit:\n");
+	soc_display_upd_value("PcdMrcInitTsegSize", 2,
+		old->PcdMrcInitTsegSize, new->PcdMrcInitTsegSize);
+	soc_display_upd_value("PcdMrcInitMmioSize", 2,
+		old->PcdMrcInitMmioSize, new->PcdMrcInitMmioSize);
+	soc_display_upd_value("PcdMrcInitSpdAddr1", 1,
+		old->PcdMrcInitSpdAddr1, new->PcdMrcInitSpdAddr1);
+	soc_display_upd_value("PcdMrcInitSpdAddr2", 1,
+		old->PcdMrcInitSpdAddr2, new->PcdMrcInitSpdAddr2);
+	soc_display_upd_value("PcdMemChannel0Config", 1,
+		old->PcdMemChannel0Config, new->PcdMemChannel0Config);
+	soc_display_upd_value("PcdMemChannel1Config", 1,
+		old->PcdMemChannel1Config, new->PcdMemChannel1Config);
+	soc_display_upd_value("PcdMemorySpdPtr", 4,
+		old->PcdMemorySpdPtr, new->PcdMemorySpdPtr);
+	soc_display_upd_value("PcdIgdDvmt50PreAlloc", 1,
+		old->PcdIgdDvmt50PreAlloc, new->PcdIgdDvmt50PreAlloc);
+	soc_display_upd_value("PcdApertureSize", 1,
+		old->PcdApertureSize, new->PcdApertureSize);
+	soc_display_upd_value("PcdGttSize", 1,
+		old->PcdGttSize, new->PcdGttSize);
+	soc_display_upd_value("PcdLegacySegDecode", 1,
+		old->PcdLegacySegDecode, new->PcdLegacySegDecode);
 }

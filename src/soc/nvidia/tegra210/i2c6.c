@@ -28,26 +28,7 @@
 
 #define I2C6_PADCTL		0xC001
 #define DPAUX_HYBRID_PADCTL	0x545C0124
-
-static struct tegra_pmc_regs * const pmc = (void *)TEGRA_PMC_BASE;
-
-static int partition_clamp_on(int id)
-{
-	return read32(&pmc->clamp_status) & (1 << id);
-}
-
-static void remove_clamps(int id)
-{
-	if (!partition_clamp_on(id))
-		return;
-
-	/* Remove clamp */
-	write32(&pmc->remove_clamping_cmd, (1 << id));
-
-	/* Wait for clamp off */
-	while (partition_clamp_on(id))
-		;
-}
+#define DPAUX_HYBRID_SPARE	0x545C0134
 
 static void enable_sor_periph_clocks(void)
 {
@@ -86,6 +67,8 @@ void soc_configure_i2c6pad(void)
 
 	/* Now we can write the I2C6 mux in DPAUX */
 	write32((void *)DPAUX_HYBRID_PADCTL, I2C6_PADCTL);
+	/* Finally, power up the pads */
+	write32((void *)DPAUX_HYBRID_SPARE, 0);
 
 	/*
 	 * Delay before turning off Host1X/DPAUX clocks.

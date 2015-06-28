@@ -21,8 +21,9 @@
 #ifndef _SKYLAKE_RAMSTAGE_H_
 #define _SKYLAKE_RAMSTAGE_H_
 
+#include <chip.h>
 #include <device/device.h>
-#include <soc/intel/skylake/chip.h>
+#include <soc/intel/common/ramstage.h>
 
 void skylake_init_pre_device(void *chip_info);
 void skylake_init_cpus(device_t dev);

@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA, 02110-1301 USA
  */
 
+#include <assert.h>
 #include <arch/cpu.h>
 #include <arch/io.h>
 #include <arch/psci.h>
@@ -25,8 +26,13 @@
 #include <soc/cpu.h>
 #include <soc/flow_ctrl.h>
 #include <soc/power.h>
+#include <stdlib.h>
 
 #include <console/console.h>
+
+extern void tegra210_reset_handler(void);
+
+#define TEGRA210_PM_STATE_C7	7
 
 static void *cpu_on_entry_point;
 
@@ -39,7 +45,7 @@ void psci_soc_init(uintptr_t cpu_on_entry)
 	 * under us. Therefore, we set the appropriate registers here, but
 	 * it is also done on each CPU_ON request.
 	 */
-	cpu_on_entry_point = (void *)cpu_on_entry;
+	cpu_on_entry_point = tegra210_reset_handler;
 	cpu_prepare_startup(cpu_on_entry_point);
 }
 
@@ -48,8 +54,13 @@ static size_t children_at_level(int parent_level, uint64_t mpidr)
 	if (mpidr != 0)
 		return 0;
 
-	/* T132 just has 2 cores. 0. Level 1 has 2 children at level 0. */
-	/* TODO(twarren): Fix this comment for T210 */
+	/*
+	 * T210 has 2 clusters. Each cluster has 4 cores. Currently we are
+	 * concentrating only on one of the clusters i.e. A57 cluster. For A53
+	 * bringup, correct the cluster details for A53 cluster as well.
+	 * Since, A57 cluster has 4 cores, level 1 has 4 children at level 0.
+	 * TODO(furquan): Update for A53.
+	 */
 	switch (parent_level) {
 	case PSCI_AFFINITY_ROOT:
 		return 1;
@@ -58,7 +69,7 @@ static size_t children_at_level(int parent_level, uint64_t mpidr)
 	case PSCI_AFFINITY_LEVEL_2:
 		return 1;
 	case PSCI_AFFINITY_LEVEL_1:
-		return 2;
+		return 4;
 	case PSCI_AFFINITY_LEVEL_0:
 		return 0;
 	default:
@@ -66,35 +77,66 @@ static size_t children_at_level(int parent_level, uint64_t mpidr)
 	}
 }
 
-#define TEGRA210_PM_CORE_C7	0x3
-
-static inline void tegra210_enter_sleep(unsigned long pmstate)
-{
-	asm volatile(
-	"       isb\n"
-	"       msr actlr_el1, %0\n"
-	"       wfi\n"
-	:
-	: "r" (pmstate));
-}
-
 static void prepare_cpu_on(int cpu)
 {
-	uint32_t partid;
+	cpu_prepare_startup(cpu_on_entry_point);
+}
 
-	partid = cpu ? POWER_PARTID_CE1 : POWER_PARTID_CE0;
+static void prepare_cpu_suspend(int cpu, uint32_t state_id)
+{
+	flowctrl_write_cc4_ctrl(cpu, 0xffffffff);
+	switch (state_id) {
+	case TEGRA210_PM_STATE_C7:
+		flowctrl_cpu_suspend(cpu);
+		break;
+	default:
+		return;
+	}
+}
 
-	power_ungate_partition(partid);
+static void prepare_cpu_resume(int cpu)
+{
+	flowctrl_write_cpu_csr(cpu, 0);
 	flowctrl_write_cpu_halt(cpu, 0);
+	flowctrl_write_cc4_ctrl(cpu, 0);
+}
+
+static void cpu_suspend_commit(int cpu, uint32_t state_id)
+{
+	int l2_flush;
+
+	switch (state_id) {
+	case TEGRA210_PM_STATE_C7:
+		l2_flush = NO_L2_FLUSH;
+		break;
+	default:
+		return;
+	}
+
+	cortex_a57_cpu_power_down(l2_flush);
+	/* should never be here */
 }
 
 static int cmd_prepare(struct psci_cmd *cmd)
 {
 	int ret;
+	struct cpu_info *ci;
+
+	ci = cmd->target->cpu_state.ci;
 
 	switch (cmd->type) {
+	case PSCI_CMD_SUSPEND:
+		cmd->state_id = cmd->state->id;
+		prepare_cpu_on(ci->id);
+		prepare_cpu_suspend(ci->id, cmd->state_id);
+		ret = PSCI_RET_SUCCESS;
+		break;
+	case PSCI_CMD_RESUME:
+		prepare_cpu_resume(ci->id);
+		ret = PSCI_RET_SUCCESS;
+		break;
 	case PSCI_CMD_ON:
-		prepare_cpu_on(cmd->target->cpu_state.ci->id);
+		prepare_cpu_on(ci->id);
 		ret = PSCI_RET_SUCCESS;
 		break;
 	case PSCI_CMD_OFF:
@@ -102,7 +144,6 @@ static int cmd_prepare(struct psci_cmd *cmd)
 			ret = PSCI_RET_INVALID_PARAMETERS;
 			break;
 		}
-		cmd->state_id = TEGRA210_PM_CORE_C7;
 		ret = PSCI_RET_SUCCESS;
 		break;
 	default:
@@ -120,14 +161,21 @@ static int cmd_commit(struct psci_cmd *cmd)
 	ci = cmd->target->cpu_state.ci;
 
 	switch (cmd->type) {
+	case PSCI_CMD_SUSPEND:
+		cpu_suspend_commit(ci->id, cmd->state_id);
+		ret = PSCI_RET_SUCCESS;
+		break;
+	case PSCI_CMD_RESUME:
+		ret = PSCI_RET_SUCCESS;
+		break;
 	case PSCI_CMD_ON:
 		/* Take CPU out of reset */
-		start_cpu_silent(ci->id, cpu_on_entry_point);
+		flowctrl_cpu_on(ci->id);
 		ret = PSCI_RET_SUCCESS;
 		break;
 	case PSCI_CMD_OFF:
 		flowctrl_cpu_off(ci->id);
-		tegra210_enter_sleep(cmd->state_id);
+		cortex_a57_cpu_power_down(NO_L2_FLUSH);
 		/* Never reach here */
 		ret = PSCI_RET_NOT_SUPPORTED;
 		printk(BIOS_ERR, "t210 CPU%d PSCI_CMD_OFF fail\n", ci->id);

@@ -34,6 +34,7 @@ config SOC_BROADCOM_CYGNUS
 	select HAVE_UART_SPECIAL
 	select HAS_PRECBMEM_TIMESTAMP_REGION
 	select RETURN_FROM_VERSTAGE
+	select GENERIC_GPIO_LIB
 
 if SOC_BROADCOM_CYGNUS
 
@@ -50,6 +51,14 @@ config CYGNUS_DDR800
 	bool "DDR Speed at 800MHz"
 	default y
 
+config CYGNUS_DDR_AUTO_SELF_REFRESH_ENABLE
+	bool "Enable DDR auto self-refresh"
+	default y
+	help
+	  Warning: M0 expects that auto self-refresh is enabled. Modify
+	  with caution.
+
+
 config CYGNUS_SHMOO_REUSE_DDR_32BIT
 	bool "Indicate if DDR width is 32-bit"
 	default n
@@ -61,4 +70,9 @@ config CYGNUS_SDRAM_TEST_DDR
 config CYGNUS_PRINT_SHMOO_DEBUG
 	bool "Print debug info for shmoo"
 	default n
+
+config CYGNUS_GPIO_TEST
+	bool "Run a test on gpio"
+	default n
+
 endif

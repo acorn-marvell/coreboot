@@ -58,6 +58,47 @@ struct tegra_dsi dsi_data[NUM_DSI] = {
 	},
 };
 
+static const u32 init_reg[] = {
+	DSI_INT_ENABLE,
+	DSI_INT_STATUS,
+	DSI_INT_MASK,
+	DSI_INIT_SEQ_DATA_0,
+	DSI_INIT_SEQ_DATA_1,
+	DSI_INIT_SEQ_DATA_2,
+	DSI_INIT_SEQ_DATA_3,
+	DSI_INIT_SEQ_DATA_4,
+	DSI_INIT_SEQ_DATA_5,
+	DSI_INIT_SEQ_DATA_6,
+	DSI_INIT_SEQ_DATA_7,
+	DSI_INIT_SEQ_DATA_15,
+	DSI_DCS_CMDS,
+	DSI_PKT_SEQ_0_LO,
+	DSI_PKT_SEQ_1_LO,
+	DSI_PKT_SEQ_2_LO,
+	DSI_PKT_SEQ_3_LO,
+	DSI_PKT_SEQ_4_LO,
+	DSI_PKT_SEQ_5_LO,
+	DSI_PKT_SEQ_0_HI,
+	DSI_PKT_SEQ_1_HI,
+	DSI_PKT_SEQ_2_HI,
+	DSI_PKT_SEQ_3_HI,
+	DSI_PKT_SEQ_4_HI,
+	DSI_PKT_SEQ_5_HI,
+	DSI_CONTROL,
+	DSI_HOST_CONTROL,
+	DSI_PAD_CONTROL_0,
+	DSI_PAD_CONTROL_CD,
+	DSI_SOL_DELAY,
+	DSI_MAX_THRESHOLD,
+	DSI_TRIGGER,
+	DSI_TX_CRC,
+	DSI_INIT_SEQ_CONTROL,
+	DSI_PKT_LEN_0_1,
+	DSI_PKT_LEN_2_3,
+	DSI_PKT_LEN_4_5,
+	DSI_PKT_LEN_6_7,
+};
+
 static inline struct tegra_dsi *host_to_tegra(struct mipi_dsi_host *host)
 {
 	return container_of(host, struct tegra_dsi, host);
@@ -305,14 +346,18 @@ static int tegra_dsi_configure(struct tegra_dsi *dsi, unsigned int pipe,
 
 		/* horizontal sync width */
 		hsw = (hsync_end(mode) - hsync_start(mode)) * mul / div;
-		hsw -= 10;
 
 		/* horizontal back porch */
 		hbp = (htotal(mode) - hsync_end(mode)) * mul / div;
-		hbp -= 14;
+		if ((dsi->flags & MIPI_DSI_MODE_VIDEO_SYNC_PULSE) == 0)
+			hbp += hsw;
 
 		/* horizontal front porch */
 		hfp = (hsync_start(mode) - mode->xres) * mul / div;
+
+		/* subtract packet overhead */
+		hsw -= 10;
+		hbp -= 14;
 		hfp -= 8;
 
 		tegra_dsi_writel(dsi, hsw << 16 | 0, DSI_PKT_LEN_0_1);
@@ -393,8 +438,10 @@ static int tegra_output_dsi_enable(struct tegra_dsi *dsi,
 		return 0;
 
 	err = tegra_dsi_configure(dsi, 0, config);
-	if (err < 0)
+	if (err < 0) {
+		printk(BIOS_ERR, "DSI configuration failed\n");
 		return err;
+	}
 
 	/* enable DSI controller */
 	tegra_dsi_enable(dsi);
@@ -470,9 +517,11 @@ static int tegra_output_dsi_setup_clock(struct tegra_dsi *dsi,
 	/* set up plld */
 	plld = clock_configure_plld(plld);
 	if (plld == 0) {
-                printk(BIOS_ERR, "%s: clock init failed\n", __func__);
-                return -1;
-        }
+		printk(BIOS_ERR, "%s: clock init failed\n", __func__);
+		return -1;
+	} else
+		printk(BIOS_INFO, "%s:  plld is configured to: %u\n",
+			 __func__, plld);
 
 	/*
 	 * Derive pixel clock from bit clock using the shift clock divider.
@@ -515,6 +564,10 @@ static int tegra_dsi_pad_calibrate(struct tegra_dsi *dsi)
 		DSI_PAD_LP_UP(0x1) | DSI_PAD_LP_DN(0x1) |
 		DSI_PAD_OUT_CLK(0x0);
 	tegra_dsi_writel(dsi, value, DSI_PAD_CONTROL_2);
+
+	value = DSI_PAD_PREEMP_PD_CLK(0x3) | DSI_PAD_PREEMP_PU_CLK(0x3) |
+		DSI_PAD_PREEMP_PD(0x03) | DSI_PAD_PREEMP_PU(0x3);
+	tegra_dsi_writel(dsi, value, DSI_PAD_CONTROL_3);
 
 	return tegra_mipi_calibrate(dsi->mipi);
 }
@@ -730,29 +783,28 @@ static ssize_t tegra_dsi_host_transfer(struct mipi_dsi_host *host,
 	}
 
 	err = tegra_dsi_transmit(dsi, 250);
-	if (err < 0)
+	if (err < 0) {
+		printk(BIOS_INFO, "Failed to transmit. %d\n", err);
 		return err;
+	}
 
 	if ((msg->flags & MIPI_DSI_MSG_REQ_ACK) ||
 	    (msg->rx_buf && msg->rx_len > 0)) {
 		err = tegra_dsi_wait_for_response(dsi, 250);
-		if (err < 0)
+		if (err < 0) {
+			printk(BIOS_INFO, "Failed to read response. %d\n", err);
 			return err;
-
+		}
 		count = err;
 
 		value = tegra_dsi_readl(dsi, DSI_RD_DATA);
 		switch (value) {
 		case 0x84:
-			/*
-			dev_dbg(dsi->dev, "ACK\n");
-			*/
+			printk(BIOS_INFO, "ACK\n");
 			break;
 
 		case 0x87:
-			/*
-			dev_dbg(dsi->dev, "ESCAPE\n");
-			*/
+			printk(BIOS_INFO, "ESCAPE\n");
 			break;
 
 		default:
@@ -766,9 +818,23 @@ static ssize_t tegra_dsi_host_transfer(struct mipi_dsi_host *host,
 				printk(BIOS_INFO,
 					"failed to parse response: %d\n",
 					err);
+			else {
+				/*
+				 * For read commands, return the number of
+				 * bytes returned by the peripheral.
+				 */
+				count = err;
+			}
 		}
+	} else {
+		/*
+		 * For write commands, we have transmitted the 4-byte header
+		 * plus the variable-length payload.
+		 */
+		count = 4 + msg->tx_len;
 	}
-	return 0;
+
+	return count;
 }
 
 static int tegra_dsi_ganged_setup(struct tegra_dsi *dsi,
@@ -818,6 +884,8 @@ static int dsi_probe_if(int dsi_index,
 	struct tegra_dsi *dsi = &dsi_data[dsi_index];
 	int err;
 
+	tegra_dsi_writel(dsi, 0, DSI_INIT_SEQ_CONTROL);
+
 	/*
 	 * Set default value. Will be taken from attached device once detected
 	 */
@@ -859,6 +927,16 @@ static int dsi_probe(struct soc_nvidia_tegra210_config *config)
 	return 0;
 }
 
+static void tegra_dsi_init_regs(struct tegra_dsi *dsi)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(init_reg); i++)
+		tegra_dsi_writel(dsi, 0, init_reg[i]);
+
+	if (dsi->slave)
+		tegra_dsi_init_regs(dsi->slave);
+}
+
 static int dsi_enable(struct soc_nvidia_tegra210_config *config)
 {
 	struct tegra_dsi *dsi_a = &dsi_data[DSI_A];
@@ -873,6 +951,9 @@ static int dsi_enable(struct soc_nvidia_tegra210_config *config)
 
 	/* configure phy interface timing registers */
 	tegra_dsi_set_phy_timing(dsi_a);
+
+	/* Initialize DSI registers */
+	tegra_dsi_init_regs(dsi_a);
 
 	/* prepare panel */
 	panel_jdi_prepare(dsi_a->panel);
@@ -927,7 +1008,7 @@ void dsi_display_startup(device_t dev)
 	}
 
 	/* set disp1's clock source to PLLD_OUT0 */
-	clock_configure_source(disp1, PLLD, (plld_rate/KHz)/2);
+	clock_configure_source(disp1, PLLD_OUT0, (plld_rate/KHz));
 
 	/* Init dc */
 	if (tegra_dc_init(disp_ctrl)) {

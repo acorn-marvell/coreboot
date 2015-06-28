@@ -26,11 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PEI_DATA_H
-#define PEI_DATA_H
+#ifndef _PEI_DATA_H_
+#define _PEI_DATA_H_
 
 #include <types.h>
-#include <memory_info.h>
 
 #define PEI_VERSION 22
 
@@ -44,9 +43,6 @@ struct pei_data {
 	void *spd_data_ch1;
 	uint8_t spd_ch0_config;
 	uint8_t spd_ch1_config;
-	uint8_t sdcard_mode;
-	uint8_t emmc_mode;
-	uint8_t enable_azalia;
 
 	/* System state information */
 	int boot_mode;
@@ -63,4 +59,4 @@ struct pei_data {
 
 typedef struct pei_data PEI_DATA;
 
-#endif
+#endif /* _PEI_DATA_H_ */

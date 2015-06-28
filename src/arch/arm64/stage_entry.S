@@ -190,6 +190,15 @@ ENDPROC(__rmodule_entry)
 	get_element_addr VBAR_INDEX
 	write_current vbar, x0, x1
 
+	get_element_addr CNTFRQ_INDEX
+	write_el0 cntfrq, x0, x1
+
+	get_element_addr CPTR_INDEX
+	write_el3 cptr, x0, x1
+
+	get_element_addr CPACR_INDEX
+	write_el1 cpacr, x0, x1
+
 	dsb sy
 	isb
 
@@ -206,12 +215,14 @@ ENDPROC(__rmodule_entry)
 
 CPU_RESET_ENTRY(arm64_cpu_startup)
 	split_bsp_path
+	bl arm64_cpu_early_setup
 	setup_sctlr
 	b	arm64_c_environment
 ENDPROC(arm64_cpu_startup)
 
 CPU_RESET_ENTRY(arm64_cpu_startup_resume)
 	split_bsp_path
+	bl arm64_cpu_early_setup
 	setup_sctlr
 	startup_restore
 	b	arm64_c_environment

@@ -181,4 +181,24 @@ void arm64_cpu_startup(void);
  */
 void arm64_cpu_startup_resume(void);
 
+/*
+ * The arm64_arch_timer_init() initializes the per CPU's cntfrq register of
+ * ARM arch timer.
+ */
+void arm64_arch_timer_init(void);
+
+/*
+ * The cortex_a57_cpu_power_down sequence as per A57/A53/A72 TRM.
+ * L2 flush by HW(0) or SW(1), if system/HW driven L2 flush is supported.
+ */
+#define NO_L2_FLUSH 0
+#define L2_FLUSH_HW 0
+#define L2_FLUSH_SW 1
+
+#if IS_ENABLED(CONFIG_ARCH_ARM64_CORTEX_A57_POWER_DOWN_SUPPORT)
+void cortex_a57_cpu_power_down(int l2_flush);
+#else
+static inline void cortex_a57_cpu_power_down(int l2_flush) {}
+#endif
+
 #endif /* __ARCH_CPU_H__ */

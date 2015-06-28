@@ -53,8 +53,13 @@ romstage-y += padconfig.c
 romstage-y += funitcfg.c
 romstage-y += romstage.c
 romstage-y += power.c
+romstage-y += ram_code.c
+ifneq ($(CONFIG_BOOTROM_SDRAM_INIT),y)
 romstage-y += sdram.c
+ ifeq ($(CONFIG_LP0_SUPPORT),y)
 romstage-y += sdram_lp0.c
+ endif
+endif
 romstage-y += ../tegra/gpio.c
 romstage-y += ../tegra/i2c.c
 romstage-y += ../tegra/pinmux.c
@@ -82,6 +87,7 @@ ramstage-y += soc.c
 ramstage-y += spi.c
 ramstage-y += i2c.c
 ramstage-y += i2c6.c
+ramstage-y += ape.c
 ramstage-y += power.c
 ramstage-y += dma.c
 ramstage-y += gic.c
@@ -89,6 +95,7 @@ ramstage-y += monotonic_timer.c
 ramstage-y += padconfig.c
 ramstage-y += funitcfg.c
 ramstage-y += reset.c
+ramstage-y += ram_code.c
 ramstage-y += ../tegra/apbmisc.c
 ramstage-y += ../tegra/gpio.c
 ramstage-y += ../tegra/i2c.c
@@ -97,14 +104,17 @@ ramstage-y += ramstage.c
 ramstage-y += mmu_operations.c
 ramstage-$(CONFIG_CONSOLE_SERIAL_UART) += uart.c
 ramstage-y += ../tegra/usb.c
-ramstage-$(CONFIG_ARCH_USE_SECURE_MONITOR) += secmon.c
+ramstage-$(CONFIG_ARM64_USE_SECURE_MONITOR) += secmon.c
+ramstage-$(CONFIG_HAVE_MTC) += mtc.c
 
-secmon-$(CONFIG_ARCH_USE_SECURE_MONITOR) += cpu.c
-secmon-$(CONFIG_ARCH_USE_SECURE_MONITOR) += cpu_lib.S
-secmon-$(CONFIG_ARCH_USE_SECURE_MONITOR) += flow_ctrl.c
-secmon-$(CONFIG_ARCH_USE_SECURE_MONITOR) += power.c
-secmon-$(CONFIG_ARCH_USE_SECURE_MONITOR) += psci.c
-secmon-$(CONFIG_ARCH_USE_SECURE_MONITOR) += uart.c
+secmon-y += cpu.c
+secmon-y += cpu_lib.S
+secmon-y += flow_ctrl.c
+secmon-y += power.c
+secmon-y += psci.c
+secmon-y += reset_handler.S
+secmon-y += uart.c
+secmon-y += gic.c
 
 rmodules_arm-y += monotonic_timer.c
 VBOOT_STUB_DEPS += $(obj)/soc/nvidia/tegra210/monotonic_timer.rmodules_arm.o
@@ -141,3 +151,12 @@ $(objcbfs)/bootblock.bin: $(objcbfs)/bootblock.raw.bin $(BCT_BIN)
 	@printf "    CBOOTIMAGE $(subst $(obj)/,,$(@))\n"
 	$(CBOOTIMAGE) $(CBOOTIMAGE_OPTS) $(BCT_WRAPPER) $@
 
+BL31_MAKEARGS += PLAT=tegra TARGET_SOC=t210
+
+# MTC fw
+MTC_DIR = $(CONFIG_MTC_DIRECTORY)
+MTC_FILE = $(MTC_DIR)/$(CONFIG_MTC_FILE)
+MTC_FILE_CBFS = $(CONFIG_MTC_FILE)
+cbfs-files-$(CONFIG_HAVE_MTC) += $(MTC_FILE_CBFS)
+$(MTC_FILE_CBFS)-file := $(MTC_FILE)
+$(MTC_FILE_CBFS)-type := 0x50

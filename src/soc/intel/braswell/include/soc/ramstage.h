@@ -21,8 +21,9 @@
 #ifndef _BRASWELL_RAMSTAGE_H_
 #define _BRASWELL_RAMSTAGE_H_
 
-#include <device/device.h>
 #include <chip.h>
+#include <device/device.h>
+#include <soc/intel/common/ramstage.h>
 
 /*
  * The braswell_init_pre_device() function is called prior to device
@@ -33,8 +34,6 @@ void braswell_init_cpus(device_t dev);
 void set_max_freq(void);
 void southcluster_enable_dev(device_t dev);
 void scc_enable_acpi_mode(device_t dev, int iosf_reg, int nvs_index);
-const char *get_pci_class_name(device_t dev);
-const char *get_pci_subclass_name(device_t dev);
 
 extern struct pci_operations soc_pci_ops;
 

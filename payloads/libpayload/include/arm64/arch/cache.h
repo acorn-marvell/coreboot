@@ -100,23 +100,21 @@ void dcache_mmu_enable(void);
 /* perform all icache/dcache maintenance needed after loading new code */
 void cache_sync_instructions(void);
 
+/* Ensure that loaded program segment is synced back from cache to PoC */
+void arch_program_segment_loaded(void const *addr, size_t len);
+
 /* tlb invalidate all */
 void tlb_invalidate_all(void);
 
-/*
- * Generalized setup/init functions
- */
-
-enum dcache_policy {
-	DCACHE_OFF,
-	DCACHE_WRITEBACK,
-	DCACHE_WRITETHROUGH,
-};
-
-/* disable the mmu for a range. Primarily useful to lock out address 0. */
-void mmu_disable_range(unsigned long start_mb, unsigned long size_mb);
-/* mmu range configuration (set dcache policy) */
-void mmu_config_range(unsigned long start_mb, unsigned long size_mb,
-						enum dcache_policy policy);
+/* Invalidate all of the instruction cache for PE to PoU. */
+static inline void icache_invalidate_all(void)
+{
+	__asm__ __volatile__(
+		"dsb	sy\n\t"
+		"ic	iallu\n\t"
+		"dsb	sy\n\t"
+		"isb\n\t"
+	: : : "memory");
+}
 
 #endif /* ARM64_CACHE_H */

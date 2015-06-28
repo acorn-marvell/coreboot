@@ -39,18 +39,11 @@
 #define SPSR_M_SHIFT         4
 #define SPSR_ERET_32         (1 << SPSR_M_SHIFT)
 #define SPSR_ERET_64         (0 << SPSR_M_SHIFT)
-#define SPSR_FIQ_SHIFT       6
-#define SPSR_FIQ_MASK        (0 << SPSR_FIQ_SHIFT)
-#define SPSR_FIQ_ENABLE      (1 << SPSR_FIQ_SHIFT)
-#define SPSR_IRQ_SHIFT       7
-#define SPSR_IRQ_MASK        (0 << SPSR_IRQ_SHIFT)
-#define SPSR_IRQ_ENABLE      (1 << SPSR_IRQ_SHIFT)
-#define SPSR_SERROR_SHIFT    8
-#define SPSR_SERROR_MASK     (0 << SPSR_SERROR_SHIFT)
-#define SPSR_SERROR_ENABLE   (1 << SPSR_SERROR_SHIFT)
-#define SPSR_DEBUG_SHIFT     9
-#define SPSR_DEBUG_MASK      (0 << SPSR_DEBUG_SHIFT)
-#define SPSR_DEBUG_ENABLE    (1 << SPSR_DEBUG_SHIFT)
+#define SPSR_FIQ             (1 << 6)
+#define SPSR_IRQ             (1 << 7)
+#define SPSR_SERROR          (1 << 8)
+#define SPSR_DEBUG           (1 << 9)
+#define SPSR_EXCEPTION_MASK  (SPSR_FIQ | SPSR_IRQ | SPSR_SERROR | SPSR_DEBUG)
 
 #define SCR_NS_SHIFT         0
 #define SCR_NS_MASK          (1 << SCR_NS_SHIFT)
@@ -259,6 +252,26 @@
 401:
 	msr	\sysreg\()_el3, \xreg
 402:
+.endm
+
+/* Macro to read from an el1 register */
+.macro read_el1 xreg sysreg
+	mrs	\xreg, \sysreg\()_el1
+.endm
+
+/* Macro to write to an el1 register */
+.macro write_el1 sysreg xreg temp
+	msr	\sysreg\()_el1, \xreg
+.endm
+
+/* Macro to read from an el0 register */
+.macro read_el0 xreg sysreg
+	mrs	\xreg, \sysreg\()_el0
+.endm
+
+/* Macro to write to an el0 register */
+.macro write_el0 sysreg xreg temp
+	msr	\sysreg\()_el0, \xreg
 .endm
 
 /* Macro to invalidate all stage 1 TLB entries for current EL */
@@ -547,6 +560,8 @@ uint64_t raw_read_vbar_current(void);
 void raw_write_vbar_current(uint64_t vbar);
 uint64_t raw_read_vbar(uint32_t el);
 void raw_write_vbar(uint64_t vbar, uint32_t el);
+uint32_t raw_read_cntfrq_el0(void);
+void raw_write_cntfrq_el0(uint32_t cntfrq_el0);
 
 /* Cache maintenance system instructions */
 void dccisw(uint64_t cisw);

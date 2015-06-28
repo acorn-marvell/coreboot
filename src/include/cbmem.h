@@ -58,10 +58,10 @@
 #define CBMEM_ID_ELOG		0x454c4f47
 #define CBMEM_ID_FREESPACE	0x46524545
 #define CBMEM_ID_GDT		0x4c474454
-#define CBMEM_ID_HOB_LIST	0x486f624c
 #define CBMEM_ID_MEMINFO	0x494D454D
 #define CBMEM_ID_MPTABLE	0x534d5054
 #define CBMEM_ID_MRCDATA	0x4d524344
+#define CBMEM_ID_MTC		0xcb31d31c
 #define CBMEM_ID_PIRQ		0x49525154
 #define CBMEM_ID_POWER_STATE	0x50535454
 #define CBMEM_ID_RAMSTAGE	0x9a357a9e
@@ -81,6 +81,8 @@
 #define CBMEM_ID_VBOOT_HANDOFF	0x780074f0
 #define CBMEM_ID_NONE		0x00000000
 #define CBMEM_ID_HOB_POINTER	0x484f4221
+#define CBMEM_ID_FSP_RESERVED_MEMORY 0x46535052
+#define CBMEM_ID_FSP_RUNTIME	0x52505346
 
 #ifndef __ASSEMBLER__
 #include <stdint.h>
@@ -101,8 +103,9 @@ struct cbmem_id_to_name {
 	{ CBMEM_ID_COVERAGE,		"COVERAGE   " }, \
 	{ CBMEM_ID_ELOG,		"ELOG       " }, \
 	{ CBMEM_ID_FREESPACE,		"FREE SPACE " }, \
+	{ CBMEM_ID_FSP_RUNTIME,		"FSP RUNTIME" }, \
+	{ CBMEM_ID_FSP_RESERVED_MEMORY, "FSP MEMORY " }, \
 	{ CBMEM_ID_GDT,			"GDT        " }, \
-	{ CBMEM_ID_HOB_LIST,		"FSP HOB PTR" }, \
 	{ CBMEM_ID_MEMINFO,		"MEM INFO   " }, \
 	{ CBMEM_ID_MPTABLE,		"SMP TABLE  " }, \
 	{ CBMEM_ID_MRCDATA,		"MRC DATA   " }, \
@@ -122,7 +125,8 @@ struct cbmem_id_to_name {
 	{ CBMEM_ID_SMM_SAVE_SPACE,	"SMM BACKUP " }, \
 	{ CBMEM_ID_SPINTABLE,		"SPIN TABLE " }, \
 	{ CBMEM_ID_TIMESTAMP,		"TIME STAMP " }, \
-	{ CBMEM_ID_VBOOT_HANDOFF,	"VBOOT      " },
+	{ CBMEM_ID_VBOOT_HANDOFF,	"VBOOT      " }, \
+	{ CBMEM_ID_MTC,		"MTC        " },
 
 struct cbmem_entry;
 
@@ -147,9 +151,11 @@ struct cbmem_entry;
  */
 
 #define DYN_CBMEM_ALIGN_SIZE (4096)
+#define CBMEM_ROOT_SIZE      DYN_CBMEM_ALIGN_SIZE
 
 /* Initialze cbmem to be empty. */
 void cbmem_initialize_empty(void);
+void cbmem_initialize_empty_id_size(u32 id, u64 size);
 
 /* Return the top address for dynamic cbmem. The address returned needs to
  * be consistent across romstage and ramstage, and it is required to be
@@ -198,6 +204,7 @@ extern struct cbmem_entry *get_cbmem_toc(void);
 /* By default cbmem is attempted to be recovered. Returns 0 if cbmem was
  * recovered or 1 if cbmem had to be reinitialized. */
 int cbmem_initialize(void);
+int cbmem_initialize_id_size(u32 id, u64 size);
 /* Add a cbmem entry of a given size and id. These return NULL on failure. The
  * add function performs a find first and do not check against the original
  * size. */

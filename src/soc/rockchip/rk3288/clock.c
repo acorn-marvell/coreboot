@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <console/console.h>
 #include <delay.h>
+#include <lib.h>
 #include <soc/addressmap.h>
 #include <soc/clock.h>
 #include <soc/grf.h>
@@ -234,22 +235,6 @@ static int rkclk_set_pll(u32 *pll_con, const struct pll_div *div)
 	write32(&pll_con[3], RK_CLRBITS(PLL_RESET_MSK));
 
 	return 0;
-}
-
-/*
-    TODO:
-    it should be replaced by lib.h function
-   'unsigned long log2(unsigned long x)'
-*/
-static unsigned int log2(unsigned int value)
-{
-	unsigned int div = 0;
-
-	while (value != 1) {
-		div++;
-		value = ALIGN_UP(value, 2) / 2;
-	}
-	return div;
 }
 
 void rkclk_init(void)
@@ -584,6 +569,17 @@ void rkclk_configure_edp(void)
 	write32(&cru_ptr->cru_softrst_con[6], RK_SETBITS(1 << 15));
 	udelay(1);
 	write32(&cru_ptr->cru_softrst_con[6], RK_CLRBITS(1 << 15));
+}
+
+void rkclk_configure_hdmi(void)
+{
+	/* enable pclk hdmi ctrl */
+	write32(&cru_ptr->cru_clkgate_con[16], RK_CLRBITS(1 << 9));
+
+	/* software reset hdmi */
+	write32(&cru_ptr->cru_softrst_con[7], RK_SETBITS(1 << 9));
+	udelay(1);
+	write32(&cru_ptr->cru_softrst_con[7], RK_CLRBITS(1 << 9));
 }
 
 void rkclk_configure_vop_aclk(u32 vop_id, u32 aclk_hz)

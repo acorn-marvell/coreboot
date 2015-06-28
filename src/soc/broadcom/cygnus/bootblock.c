@@ -21,6 +21,7 @@
 #include <bootblock_common.h>
 #include <stddef.h>
 #include <symbols.h>
+#include <soc/hw_init.h>
 
 void bootblock_soc_init(void)
 {
@@ -33,4 +34,6 @@ void bootblock_soc_init(void)
 	mmu_config_range_kb((uintptr_t)_sram/KiB, _sram_size/KiB,
 			    DCACHE_WRITETHROUGH);
 	dcache_mmu_enable();
+
+	hw_init();
 }

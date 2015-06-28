@@ -51,6 +51,8 @@
 #define PIRQH_ROUT		0x6B
 
 #define LPC_IO_DEC		0x80 /* IO Decode Ranges Register */
+#define  COMA_RANGE		0x0 /* 0x3F8 - 0x3FF COM1*/
+#define  COMB_RANGE		0x1 /* 0x2F8 - 0x2FF COM2*/
 #define LPC_EN			0x82 /* LPC IF Enables Register */
 #define  CNF2_LPC_EN		(1 << 13) /* 0x4e/0x4f */
 #define  CNF1_LPC_EN		(1 << 12) /* 0x2e/0x2f */
@@ -68,27 +70,5 @@
 #define LPC_GEN4_DEC		0x90 /* LPC IF Generic Decode Range 4 */
 #define LGMR			0x98 /* LPC Generic Memory Range */
 #define RCBA			0xf0 /* Root Complex Register Block */
-
-/* Power Management */
-
-#define GEN_PMCON_1		0xa0
-#define  SMI_LOCK		(1 << 4)
-#define GEN_PMCON_2		0xa2
-#define  SYSTEM_RESET_STS	(1 << 4)
-#define  THERMTRIP_STS		(1 << 3)
-#define  SYSPWR_FLR		(1 << 1)
-#define  PWROK_FLR		(1 << 0)
-#define GEN_PMCON_3		0xa4
-#define  SUS_PWR_FLR		(1 << 14)
-#define  GEN_RST_STS		(1 << 9)
-#define  RTC_BATTERY_DEAD	(1 << 2)
-#define  PWR_FLR		(1 << 1)
-#define  SLEEP_AFTER_POWER_FAIL	(1 << 0)
-#define GEN_PMCON_LOCK		0xa6
-#define  SLP_STR_POL_LOCK	(1 << 2)
-#define  ACPI_BASE_LOCK		(1 << 1)
-#define PMIR			0xac
-#define  PMIR_CF9LOCK		(1 << 31)
-#define  PMIR_CF9GR		(1 << 20)
 
 #endif

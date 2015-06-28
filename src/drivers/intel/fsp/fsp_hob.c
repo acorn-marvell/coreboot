@@ -46,8 +46,6 @@ are permitted provided that the following conditions are met:
 #include <lib.h> // hexdump
 #include <string.h>
 
-void *fsp_hob_list_ptr CAR_GLOBAL;
-
 /*
  * Reads a 64-bit value from memory that may be unaligned.
  *
@@ -111,37 +109,18 @@ compare_guid(
 }
 
 /* Returns the pointer to the HOB list. */
-void
-set_hob_list(
-	void *hob_list_ptr
-	)
-{
-	void **hob_ptr;
-
-	fsp_hob_list_ptr = hob_list_ptr;
-	printk(BIOS_SPEW, "0x%p: fsp_hob_list_ptr\n", hob_list_ptr);
-	hob_ptr = cbmem_add(CBMEM_ID_HOB_LIST, sizeof(hob_list_ptr));
-	if (hob_ptr == NULL)
-		die("ERROR - cbmem_add failed in set_hob_list!\n");
-	*hob_ptr = hob_list_ptr;
-}
-
-/* Returns the pointer to the HOB list. */
 VOID *
 EFIAPI
 get_hob_list(
 	VOID
 	)
 {
-	void **hob_ptr;
+	void *hob_list;
 
-	if (fsp_hob_list_ptr == NULL) {
-		hob_ptr = cbmem_find(CBMEM_ID_HOB_LIST);
-		if (hob_ptr == NULL)
-			die("Call set_hob_list before this call!\n");
-		fsp_hob_list_ptr = *hob_ptr;
-	}
-	return fsp_hob_list_ptr;
+	hob_list = fsp_get_hob_list();
+	if (hob_list == NULL)
+		die("Call fsp_set_runtime() before this call!\n");
+	return hob_list;
 }
 
 /* Returns the next instance of a HOB type from the starting HOB. */
@@ -190,16 +169,16 @@ get_next_guid_hob(
 	CONST VOID *hob_start
 	)
 {
-	EFI_PEI_HOB_POINTERS guid_hob;
+	EFI_PEI_HOB_POINTERS hob;
 
-	guid_hob.Raw = (UINT8 *)hob_start;
-	while ((guid_hob.Raw = get_next_hob(EFI_HOB_TYPE_GUID_EXTENSION,
-						guid_hob.Raw)) != NULL) {
-		if (compare_guid(guid, &guid_hob.Guid->Name))
+	hob.Raw = (UINT8 *)hob_start;
+	while ((hob.Raw = get_next_hob(EFI_HOB_TYPE_GUID_EXTENSION, hob.Raw))
+					!= NULL) {
+		if (compare_guid(guid, &hob.Guid->Name))
 			break;
-		guid_hob.Raw = GET_NEXT_HOB(guid_hob.Raw);
+		hob.Raw = GET_NEXT_HOB(hob.Raw);
 	}
-	return guid_hob.Raw;
+	return hob.Raw;
 }
 
 /*
@@ -211,10 +190,33 @@ get_first_guid_hob(
 	CONST EFI_GUID * guid
 	)
 {
-	VOID *hob_list;
+	return get_next_guid_hob(guid, get_hob_list());
+}
 
-	hob_list = get_hob_list();
-	return get_next_guid_hob(guid, hob_list);
+/*
+ * Returns the next instance of the matching resource HOB from the starting HOB.
+ */
+void *get_next_resource_hob(const EFI_GUID *guid, const void *hob_start)
+{
+	EFI_PEI_HOB_POINTERS hob;
+
+	hob.Raw = (UINT8 *)hob_start;
+	while ((hob.Raw = get_next_hob(EFI_HOB_TYPE_RESOURCE_DESCRIPTOR,
+					    hob.Raw)) != NULL) {
+		if (compare_guid(guid, &hob.ResourceDescriptor->Owner))
+			break;
+		hob.Raw = GET_NEXT_HOB(hob.Raw);
+	}
+	return hob.Raw;
+}
+
+/*
+ * Returns the first instance of the matching resource HOB among the whole HOB
+ * list.
+ */
+void *get_first_resource_hob(const EFI_GUID *guid)
+{
+	return get_next_resource_hob(guid, get_hob_list());
 }
 
 static void print_hob_mem_attributes(void *hob_ptr)
@@ -308,6 +310,9 @@ static const char *get_hob_type_string(void *hob_ptr)
 	const EFI_GUID mrc_guid = FSP_NON_VOLATILE_STORAGE_HOB_GUID;
 	const EFI_GUID bootldr_tmp_mem_guid =
 		FSP_BOOTLOADER_TEMP_MEMORY_HOB_GUID;
+	const EFI_GUID bootldr_tolum_guid = FSP_BOOTLOADER_TOLUM_HOB_GUID;
+	const EFI_GUID graphics_info_guid = EFI_PEI_GRAPHICS_INFO_HOB_GUID;
+	const EFI_GUID memory_info_hob_guid = FSP_SMBIOS_MEMORY_INFO_GUID;
 
 	hob.Header = (EFI_HOB_GENERIC_HEADER *)hob_ptr;
 	switch (hob.Header->HobType) {
@@ -319,15 +324,21 @@ static const char *get_hob_type_string(void *hob_ptr)
 		break;
 	case EFI_HOB_TYPE_RESOURCE_DESCRIPTOR:
 		hob_type_string = "EFI_HOB_TYPE_RESOURCE_DESCRIPTOR";
+		if (compare_guid(&fsp_reserved_guid, &hob.Guid->Name))
+			hob_type_string = "FSP_RESERVED_MEMORY_RESOURCE_HOB";
+		else if (compare_guid(&bootldr_tolum_guid, &hob.Guid->Name))
+			hob_type_string = "FSP_BOOTLOADER_TOLUM_HOB_GUID";
 		break;
 	case EFI_HOB_TYPE_GUID_EXTENSION:
 		hob_type_string = "EFI_HOB_TYPE_GUID_EXTENSION";
 		if (compare_guid(&bootldr_tmp_mem_guid, &hob.Guid->Name))
 			hob_type_string = "FSP_BOOTLOADER_TEMP_MEMORY_HOB";
-		else if (compare_guid(&fsp_reserved_guid, &hob.Guid->Name))
-			hob_type_string = "FSP_RESERVED_MEMORY_RESOURCE_HOB";
 		else if (compare_guid(&mrc_guid, &hob.Guid->Name))
 			hob_type_string = "FSP_NON_VOLATILE_STORAGE_HOB";
+		else if (compare_guid(&graphics_info_guid, &hob.Guid->Name))
+			hob_type_string = "EFI_PEI_GRAPHICS_INFO_HOB_GUID";
+		else if (compare_guid(&memory_info_hob_guid, &hob.Guid->Name))
+			hob_type_string = "FSP_SMBIOS_MEMORY_INFO_GUID";
 		break;
 	case EFI_HOB_TYPE_MEMORY_POOL:
 		hob_type_string = "EFI_HOB_TYPE_MEMORY_POOL";
@@ -407,72 +418,6 @@ void print_hob_type_structure(u16 hob_type, void *hob_list_ptr)
 		}
 	} while (!last_hob);
 	printk(BIOS_DEBUG, "=== End of FSP HOB Data Structure ===\n\n");
-}
-
-/*
- * Locate the HOB containing the location of the fsp reserved mem area
- *
- * hob_list_ptr pointer to the start of the hob list
- *
- * Returns a pointer to the start of the FSP reserved memory or NULL if not
- * found
- */
-void *fsp_find_reserved_mem(void *hob_list_ptr)
-{
-	EFI_GUID fsp_reserved_guid = FSP_RESERVED_MEMORY_RESOURCE_HOB_GUID;
-	EFI_HOB_RESOURCE_DESCRIPTOR *fsp_reserved_mem =
-		(EFI_HOB_RESOURCE_DESCRIPTOR *) get_next_guid_hob(
-		&fsp_reserved_guid, hob_list_ptr);
-
-	if (fsp_reserved_mem == NULL) {
-		printk(BIOS_ERR,
-			"FSP_RESERVED_MEMORY_RESOURCE_HOB not found!\n");
-		return NULL;
-	}
-
-	return  (void *)((uintptr_t)fsp_reserved_mem->PhysicalStart);
-}
-
-void fsp_check_reserved_mem_size(void *hob_list_ptr, void *end_of_region)
-{
-	EFI_HOB_GENERIC_HEADER *current_hob;
-	EFI_HOB_MEMORY_ALLOCATION *alloc_hob;
-	u8 list_end;
-	uint32_t real_fsp_mem;
-	uint32_t region_end;
-	uint32_t fsp_base;
-	uint64_t tmp_base;
-
-	/* Determine the amount of memory below 4GB. */
-	current_hob = hob_list_ptr;
-	region_end = (uint32_t)end_of_region;
-	fsp_base = region_end;
-	do {
-		if (current_hob->HobType == EFI_HOB_TYPE_MEMORY_ALLOCATION) {
-			alloc_hob = (EFI_HOB_MEMORY_ALLOCATION *) current_hob;
-			tmp_base = alloc_hob->AllocDescriptor.MemoryBaseAddress;
-			if (tmp_base < fsp_base)
-				fsp_base = (uint32_t)tmp_base;
-		}
-
-		list_end = END_OF_HOB_LIST(current_hob);
-		if (!list_end)
-			current_hob = GET_NEXT_HOB(current_hob);
-	} while (!list_end);
-
-	/* Next detemine how much memory was reserved by FSP. */
-	real_fsp_mem = region_end - fsp_base;
-	printk(BIOS_DEBUG, "CBMEM TOP: 0x%08x\n", fsp_base);
-	printk(BIOS_DEBUG, "FSP Reserved: 0x%08x\n", real_fsp_mem);
-	printk(BIOS_DEBUG, "Firmware Expected: 0x%08x\n",
-	       CONFIG_FSP_RESERVED_MEM_SIZE);
-	if (real_fsp_mem > CONFIG_FSP_RESERVED_MEM_SIZE) {
-		printk(BIOS_DEBUG,
-			"Update CONFIG_FSP_RESERVED_MEM_SIZE >= 0x%08x",
-			real_fsp_mem);
-		while (1)
-			hlt();
-	}
 }
 
 #if IS_ENABLED(CONFIG_ENABLE_MRC_CACHE)

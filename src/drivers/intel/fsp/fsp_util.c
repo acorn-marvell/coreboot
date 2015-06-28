@@ -18,6 +18,7 @@
  */
 
 #include <bootstate.h>
+#include <cbmem.h>
 #include <console/console.h>
 #include "fsp_util.h"
 #include <timestamp.h>
@@ -121,7 +122,7 @@ void print_fsp_info(FSP_INFO_HEADER *fsp_header)
 		&fsp_base[fsp_header->TempRamInitEntryOffset]);
 	printk(BIOS_SPEW, "    0x%p: FspInit\n",
 		&fsp_base[fsp_header->FspInitEntryOffset]);
-	if (fsp_header->HeaderRevision >= FSP_HEADER_REVISION_1_1) {
+	if (fsp_header->HeaderRevision >= FSP_HEADER_REVISION_2) {
 		printk(BIOS_SPEW, "    0x%p: MemoryInit\n",
 			&fsp_base[fsp_header->FspMemoryInitEntryOffset]);
 		printk(BIOS_SPEW, "    0x%p: TempRamExit\n",
@@ -138,14 +139,14 @@ void print_fsp_info(FSP_INFO_HEADER *fsp_header)
 
 #ifndef __PRE_RAM__
 
-FSP_INFO_HEADER *fsp_header_ptr = NULL;
-
 void fsp_notify(u32 phase)
 {
 	FSP_NOTIFY_PHASE notify_phase_proc;
 	NOTIFY_PHASE_PARAMS notify_phase_params;
 	EFI_STATUS status;
+	FSP_INFO_HEADER *fsp_header_ptr;
 
+	fsp_header_ptr = fsp_get_fih();
 	if (fsp_header_ptr == NULL) {
 		fsp_header_ptr = (void *)find_fsp();
 		if ((u32)fsp_header_ptr < 0xff) {
@@ -188,9 +189,64 @@ BOOT_STATE_INIT_ENTRIES(fsp_bscbs) = {
 	BOOT_STATE_INIT_ENTRY(BS_PAYLOAD_LOAD, BS_ON_EXIT,
 		fsp_notify_boot_state_callback,
 		(void *)EnumInitPhaseReadyToBoot),
-	BOOT_STATE_INIT_ENTRY(BS_OS_RESUME, BS_ON_EXIT,
+	BOOT_STATE_INIT_ENTRY(BS_OS_RESUME, BS_ON_ENTRY,
 		fsp_notify_boot_state_callback,
 		(void *)EnumInitPhaseReadyToBoot)
 };
 
 #endif	/* #ifndef __PRE_RAM__ */
+
+struct fsp_runtime {
+	uint32_t fih;
+	uint32_t hob_list;
+} __attribute__((packed));
+
+
+void fsp_set_runtime(FSP_INFO_HEADER *fih, void *hob_list)
+{
+	struct fsp_runtime *fspr;
+
+	fspr = cbmem_add(CBMEM_ID_FSP_RUNTIME, sizeof(*fspr));
+
+	if (fspr == NULL)
+		die("Can't save FSP runtime information.\n");
+
+	fspr->fih = (uintptr_t)fih;
+	fspr->hob_list = (uintptr_t)hob_list;
+}
+
+FSP_INFO_HEADER *fsp_get_fih(void)
+{
+	struct fsp_runtime *fspr;
+
+	fspr = cbmem_find(CBMEM_ID_FSP_RUNTIME);
+
+	if (fspr == NULL)
+		return NULL;
+
+	return (void *)(uintptr_t)fspr->fih;
+}
+
+void *fsp_get_hob_list(void)
+{
+	struct fsp_runtime *fspr;
+
+	fspr = cbmem_find(CBMEM_ID_FSP_RUNTIME);
+
+	if (fspr == NULL)
+		return NULL;
+
+	return (void *)(uintptr_t)fspr->hob_list;
+}
+
+void fsp_update_fih(FSP_INFO_HEADER *fih)
+{
+	struct fsp_runtime *fspr;
+
+	fspr = cbmem_find(CBMEM_ID_FSP_RUNTIME);
+
+	if (fspr == NULL)
+		die("Can't update FSP runtime information.\n");
+
+	fspr->fih = (uintptr_t)fih;
+}

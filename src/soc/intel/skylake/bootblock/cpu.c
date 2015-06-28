@@ -26,8 +26,8 @@
 #include <arch/io.h>
 #include <cpu/intel/microcode/microcode.c>
 #include <reset.h>
-#include <soc/rcba.h>
 #include <soc/msr.h>
+#include <soc/spi.h>
 
 static void set_var_mtrr(
 	unsigned reg, unsigned base, unsigned size, unsigned type)
@@ -71,6 +71,7 @@ static void bootblock_mdelay(int ms)
 
 static void set_flex_ratio_to_tdp_nominal(void)
 {
+#if 0 /* Disabled until http://crosbug.com/p/41039 is resolved */
 	msr_t flex_ratio, msr;
 	u32 soft_reset_data;
 	u8 nominal_ratio;
@@ -99,23 +100,12 @@ static void set_flex_ratio_to_tdp_nominal(void)
 	flex_ratio.lo |= FLEX_RATIO_LOCK;
 	wrmsr(MSR_FLEX_RATIO, flex_ratio);
 
-	/*
-	 * Set flex ratio in soft reset data register bits 11:6.
-	 * RCBA region is enabled in southbridge bootblock
-	 */
-	soft_reset_data = RCBA32(SOFT_RESET_DATA);
-	soft_reset_data &= ~(0x3f << 6);
-	soft_reset_data |= (nominal_ratio & 0x3f) << 6;
-	RCBA32(SOFT_RESET_DATA) = soft_reset_data;
-
-	/* Set soft reset control to use register value */
-	RCBA32_OR(SOFT_RESET_CTRL, 1);
-
 	/* Delay before reset to avoid potential TPM lockout */
 	bootblock_mdelay(30);
 
 	/* Issue soft reset, will be "CPU only" due to soft reset data */
 	soft_reset();
+#endif
 }
 
 static void check_for_clean_reset(void)

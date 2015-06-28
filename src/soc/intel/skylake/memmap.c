@@ -26,59 +26,7 @@
 #include <soc/smm.h>
 #include <soc/systemagent.h>
 
-void *cbmem_top(void)
-{
-	/*
-	 *     +-------------------------+  Top of RAM (aligned)
-	 *     | System Management Mode  |
-	 *     |      code and data      |  Length: CONFIG_TSEG_SIZE
-	 *     |         (TSEG)          |
-	 *     +-------------------------+  SMM base (aligned)
-	 *     |                         |
-	 *     | Chipset Reserved Memory |
-	 *     |                         |
-	 *     +-------------------------+  Chipset reserved mem base (aligned)
-	 *     |                         |
-	 *     |   FSP Reserved Memory   |
-	 *     |                         |
-	 *     +-------------------------+  top_of_ram (not aligned)
-	 *     |                         |
-	 *     |       CBMEM Root        |
-	 *     |                         |
-	 *     +-------------------------+
-	 *     |                         |
-	 *     |  Various CBMEM Entries  |
-	 *     |                         |
-	 *     +-------------------------+  top_of_stack (8 byte aligned)
-	 *     |                         |
-	 *     |   stack (CBMEM Entry)   |
-	 *     |                         |
-	 *     +-------------------------+
-	 *
-	 * Requirement:
-	 *    Chipset reserved memory base needs to be aligned to a multiple
-	 *    of TSEG size when SMM is in use or 8 Mib when SMM is not supported
-	 *    by the SOC/board configuration.
-	 */
-
-	unsigned long top_of_ram = (unsigned long)smm_region_start();
-	/*
-	 * Subtract DMA Protected Range size if enabled and align to a multiple
-	 * of TSEG size.
-	 */
-	u32 dpr = pci_read_config32(SA_DEV_ROOT, DPR);
-	if (dpr & DPR_EPM) {
-		top_of_ram -= (dpr & DPR_SIZE_MASK) << 16;
-		top_of_ram = ALIGN_DOWN(top_of_ram, region_alignment_size());
-	}
-
-	/* Allocate some space for FSP */
-	top_of_ram -= CONFIG_FSP_RESERVED_MEM_SIZE;
-
-	return (void *)top_of_ram;
-}
-
-uint32_t region_alignment_size(void)
+size_t mmap_region_granluarity(void)
 {
 #if IS_ENABLED(CONFIG_HAVE_SMI_HANDLER)
 	/* Align to TSEG size when SMM is in use */
@@ -90,7 +38,7 @@ uint32_t region_alignment_size(void)
 	return 8 << 20;
 }
 
-void *smm_region_start(void)
+static void *smm_region_start(void)
 {
 	/*
 	 * SMM base address matches the top of DPR.  The DPR register has
@@ -100,3 +48,55 @@ void *smm_region_start(void)
 	smm_base = ALIGN_DOWN(smm_base, 1 << 20);
 	return (void *)smm_base;
 }
+
+void smm_region(void **start, size_t *size)
+{
+	*start = smm_region_start();
+	*size = mmap_region_granluarity();
+}
+
+void *cbmem_top(void)
+{
+	/*
+	 *     +-------------------------+  Top of RAM (aligned)
+	 *     | System Management Mode  |
+	 *     |      code and data      |  Length: CONFIG_TSEG_SIZE
+	 *     |         (TSEG)          |
+	 *     +-------------------------+  SMM base (aligned)
+	 *     |                         |
+	 *     | Chipset Reserved Memory |  Length: Multiple of CONFIG_TSEG_SIZE
+	 *     |                         |
+	 *     +-------------------------+  top_of_ram (aligned)
+	 *     |                         |
+	 *     |       CBMEM Root        |
+	 *     |                         |
+	 *     +-------------------------+
+	 *     |                         |
+	 *     |   FSP Reserved Memory   |
+	 *     |                         |
+	 *     +-------------------------+
+	 *     |                         |
+	 *     |  Various CBMEM Entries  |
+	 *     |                         |
+	 *     +-------------------------+  top_of_stack (8 byte aligned)
+	 *     |                         |
+	 *     |   stack (CBMEM Entry)   |
+	 *     |                         |
+	 *     +-------------------------+
+	 */
+
+	unsigned long top_of_ram = (unsigned long)smm_region_start();
+
+	/*
+	 * Subtract DMA Protected Range size if enabled and align to a multiple
+	 * of TSEG size.
+	 */
+	u32 dpr = pci_read_config32(SA_DEV_ROOT, DPR);
+	if (dpr & DPR_EPM) {
+		top_of_ram -= (dpr & DPR_SIZE_MASK) << 16;
+		top_of_ram = ALIGN_DOWN(top_of_ram, mmap_region_granluarity());
+	}
+
+	return (void *)(top_of_ram - CONFIG_CHIPSET_RESERVED_MEM_BYTES);
+}
+

@@ -5,6 +5,8 @@ config SOC_NVIDIA_TEGRA210
 	select ARCH_VERSTAGE_ARM_V4
 	select ARCH_ROMSTAGE_ARM_V4
 	select ARCH_RAMSTAGE_ARM_V8_64
+	select ARCH_ARM64_CPU_CORTEX_A57
+	select ARCH_ARM64_CORTEX_A57_POWER_DOWN_SUPPORT
 	select BOOTBLOCK_CONSOLE
 	select GIC
 	select HAVE_MONOTONIC_TIMER
@@ -15,11 +17,11 @@ config SOC_NVIDIA_TEGRA210
 	select EARLY_CONSOLE
 	select ARM_BOOTBLOCK_CUSTOM
 	select DYNAMIC_CBMEM
-	select SMP
-	select ARCH_USE_SECURE_MONITOR
+	select ARM64_USE_ARM_TRUSTED_FIRMWARE
 	select COLLECT_TIMESTAMPS
 	select HAS_PRECBMEM_TIMESTAMP_REGION
 	select CHROMEOS_RAMOOPS_NON_ACPI
+	select GENERIC_GPIO_LIB
 
 if SOC_NVIDIA_TEGRA210
 
@@ -47,7 +49,7 @@ config BOOTBLOCK_CPU_INIT
 
 config MAX_CPUS
 	int
-	default 2
+	default 4
 
 choice CONSOLE_SERIAL_TEGRA210_UART_CHOICES
 	prompt "Serial Console UART"
@@ -100,7 +102,7 @@ config BOOTROM_SDRAM_INIT
 
 config TRUSTZONE_CARVEOUT_SIZE_MB
 	hex "Size of Trust Zone region"
-	default 0x4
+	default 0x14
 	help
 	  Size of Trust Zone area in MiB to reserve in memory map.
 
@@ -109,4 +111,33 @@ config PLLX_KHZ
         int
         default 700000
 endif
+
+config HAVE_MTC
+	bool "Add external Memory controller Training Code binary"
+	default y
+	help
+	  Select this option to add emc training firmware
+
+if HAVE_MTC
+
+config MTC_FILE
+	string "tegra mtc firmware filename"
+	default "tegra_mtc.bin"
+	help
+	  The filename of the mtc firmware
+
+config MTC_DIRECTORY
+	string "Directory where MTC firmware file is located"
+	default "."
+	help
+	  Path to directory where MTC firmware file is located.
+
+config MTC_ADDRESS
+	hex
+	default 0x81000000
+	help
+	  The DRAM location where MTC firmware to be loaded in. This location
+	  needs to be consistent with the location defined in tegra_mtc.ld
+
+endif # HAVE_MTC
 

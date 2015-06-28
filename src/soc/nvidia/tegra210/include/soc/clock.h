@@ -36,13 +36,13 @@ enum {
 	CLK_L_GPIO = 0x1 << 8,
 	CLK_L_SDMMC2 = 0x1 << 9,
 	CLK_L_SPDIF = 0x1 << 10,
-	CLK_L_I2S1 = 0x1 << 11,
+	CLK_L_I2S2 = 0x1 << 11,
 	CLK_L_I2C1 = 0x1 << 12,
 	CLK_L_NDFLASH = 0x1 << 13,
 	CLK_L_SDMMC1 = 0x1 << 14,
 	CLK_L_SDMMC4 = 0x1 << 15,
 	CLK_L_PWM = 0x1 << 17,
-	CLK_L_I2S2 = 0x1 << 18,
+	CLK_L_I2S3 = 0x1 << 18,
 	CLK_L_EPP = 0x1 << 19,
 	CLK_L_VI = 0x1 << 20,
 	CLK_L_2D = 0x1 << 21,
@@ -53,7 +53,7 @@ enum {
 	CLK_L_DISP1 = 0x1 << 27,
 	CLK_L_HOST1X = 0x1 << 28,
 	CLK_L_VCP = 0x1 << 29,
-	CLK_L_I2S0 = 0x1 << 30,
+	CLK_L_I2S1 = 0x1 << 30,
 	CLK_L_CACHE2 = 0x1 << 31,
 
 	CLK_H_MEM = 0x1 << 0,
@@ -124,16 +124,13 @@ enum {
 	CLK_V_CPULP = 0x1 << 1,
 	CLK_V_3D2 = 0x1 << 2,
 	CLK_V_MSELECT = 0x1 << 3,
-	CLK_V_I2S3 = 0x1 << 5,
-	CLK_V_I2S4 = 0x1 << 6,
+	CLK_V_I2S4 = 0x1 << 5,
+	CLK_V_I2S5 = 0x1 << 6,
 	CLK_V_I2C4 = 0x1 << 7,
 	CLK_V_SBC5 = 0x1 << 8,
 	CLK_V_SBC6 = 0x1 << 9,
-	CLK_V_AUDIO = 0x1 << 10,
-	CLK_V_APBIF = 0x1 << 11,
-	CLK_V_DAM0 = 0x1 << 12,
-	CLK_V_DAM1 = 0x1 << 13,
-	CLK_V_DAM2 = 0x1 << 14,
+	CLK_V_AHUB = 0x1 << 10,
+	CLK_V_APB2APE = 0x1 << 11,
 	CLK_V_HDA2CODEC_2X = 0x1 << 15,
 	CLK_V_ATOMICS = 0x1 << 16,
 	CLK_V_ACTMON = 0x1 << 23,
@@ -146,35 +143,21 @@ enum {
 	CLK_W_CEC = 0x1 << 8,
 	CLK_W_XUSB_PADCTL = 0x1 << 14,
 	CLK_W_ENTROPY = 0x1 << 21,
-	CLK_W_DP2 = 0x1 << 24,
-	CLK_W_AMX0 = 0x1 << 25,
-	CLK_W_ADX0 = 0x1 << 26,
 	CLK_W_DVFS = 0x1 << 27,
 	CLK_W_XUSB_SS = 0x1 << 28,
-	CLK_W_MC1 = 0x1 << 30,
-	CLK_W_EMC1 = 0x1 << 31,
 
-	CLK_X_AFC0 = 0x1 << 31,
-	CLK_X_AFC1 = 0x1 << 30,
-	CLK_X_AFC2 = 0x1 << 29,
-	CLK_X_AFC3 = 0x1 << 28,
-	CLK_X_AFC4 = 0x1 << 27,
-	CLK_X_AFC5 = 0x1 << 26,
-	CLK_X_AMX1 = 0x1 << 25,
 	CLK_X_GPU = 0x1 << 24,
+	CLK_X_SOR1 = 0x1 << 23,
 	CLK_X_SOR0 = 0x1 << 22,
 	CLK_X_DPAUX = 0x1 << 21,
-	CLK_X_ADX1 = 0x1 << 20,
 	CLK_X_VIC = 0x1 << 18,
-	CLK_X_CLK72MHZ = 0x1 << 17,
-	CLK_X_HDMI_AUDIO = 0x1 << 16,
-	CLK_X_EMC_DLL = 0x1 << 14,
-	CLK_X_VIM2_CLK = 0x1 << 11,
+	CLK_X_UART_FST_MIPI_CAL = 0x1 << 17,
+	CLK_X_MIPIBIF = 0x1 << 13,
 	CLK_X_I2C6 = 0x1 << 6,
-	CLK_X_CAM_MCLK2 = 0x1 << 5,
-	CLK_X_CAM_MCLK = 0x1 << 4,
+	CLK_X_ETR = 0x1 << 3,
 	CLK_X_SPARE = 0x1 << 0,
 
+	CLK_Y_APE = 0x1 << 6,
 	CLK_Y_QSPI = 0x1 << 19,
 };
 
@@ -198,6 +181,8 @@ enum {
 	PLLC4_OUT1_L = 16,
 	PLLC4_OUT2_L = 17,
 	PLLD_OUT0 = 18,
+	PLLP_OUT3 = 19,
+	PLLC2_OUT0 = 20,
 	UNUSED0 = 100,
 	UNUSED1 = 101,
 	UNUSED2 = 102,
@@ -264,6 +249,8 @@ enum {
 		       UNUSED6, UNUSED7),
 	CLK_SRC_DEVICE(QSPI, PLLP, PLLC_OUT1, PLLC, UNUSED3, PLLC4_OUT2,
 		       PLLC4_OUT1, CLK_M, PLLC4_OUT0),
+	CLK_SRC_DEVICE(uart_fst_mipi_cal, PLLP_OUT3, PLLP, PLLC, UNUSED3, PLLC2_OUT0,
+			UNUSED5, CLK_M, UNUSED7),
 };
 
 /* PLL stabilization delay in usec */
@@ -339,11 +326,13 @@ static inline void _clock_set_div(u32 *reg, const char *name, u32 div,
 		       CLK_SRC_DEV_ID(device, src))
 
 /* soc-specific */
-#define TEGRA_CLK_M_KHZ	 clock_get_osc_khz()
+#define TEGRA_CLK_M_KHZ	 (clock_get_osc_khz()/2)
 #define TEGRA_PLLX_KHZ   CONFIG_PLLX_KHZ
 #define TEGRA_PLLP_KHZ   (408000)
+#define TEGRA_PLLP_OUT3_KHZ	(68000)
 #define TEGRA_PLLC_KHZ   (600000)
 #define TEGRA_PLLD_KHZ   (925000)
+#define TEGRA_PLLD_OUT0_KHZ   (TEGRA_PLLD_KHZ/2)
 #define TEGRA_PLLU_KHZ   (960000)
 
 #define clock_enable(l, h, u, v, w, x, y)				\
@@ -426,9 +415,8 @@ int clock_get_pll_input_khz(void);
 u32 clock_configure_plld(u32 frequency);
 void clock_early_uart(void);
 void clock_external_output(int clk_id);
-void clock_sdram(u32 m, u32 n, u32 p, u32 setup, u32 ph45, u32 ph90,
-		 u32 ph135, u32 kvco, u32 kcp, u32 stable_time, u32 emc_source,
-		 u32 same_freq);
+void clock_sdram(u32 m, u32 n, u32 p, u32 setup, u32 kvco, u32 kcp,
+		 u32 stable_time, u32 emc_source, u32 same_freq);
 void clock_cpu0_config(void);
 void clock_halt_avp(void);
 void clock_enable_regs(u32 bits[DEV_CONFIG_BLOCKS]);

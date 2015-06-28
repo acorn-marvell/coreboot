@@ -26,6 +26,7 @@
 #if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
 #include <fsp_util.h>
 #endif	/* CONFIG_PLATFORM_USES_FSP */
+#include <soc/intel/common/util.h>
 #include <soc/pei_data.h>
 #include <soc/pm.h>		/* chip_power_state */
 
@@ -33,6 +34,7 @@ struct romstage_params {
 	unsigned long bist;
 	struct chipset_power_state *power_state;
 	struct pei_data *pei_data;
+	void *chipset_context;
 };
 
 /*
@@ -60,8 +62,8 @@ struct romstage_params {
  *       after call to romstage_main
  *  21.  FSP binary/TempRamExit
  *  22.  src/soc/intel/common/romstage.c/romstage_after_car
- *  23.  FSP binary/SiliconInit
- *  24.  src/soc/intel/common/romstage.c/romstage_after_car - return
+ *  23.  src/soc/intel/common/romstage.c/romstage_after_car - return
+ *  24.  FSP binary/SiliconInit
  *  25.  src/soc/intel/.../chip.c/skylake_final
  *  26.  src/drivers/intel/fsp/fsp_util.c/fsp_notify
  *  27.  FSP binary/FspNotify
@@ -70,28 +72,30 @@ struct romstage_params {
  *  30.  FSP binary/FspNotify
  */
 
-#if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
-void board_fsp_memory_init_params(
-	struct romstage_params *params,
-	FSP_INFO_HEADER *fsp_header,
-	FSP_MEMORY_INIT_PARAMS * fsp_memory_init_params);
-#endif	/* CONFIG_PLATFORM_USES_FSP */
 void mainboard_check_ec_image(struct romstage_params *params);
+#if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
+void mainboard_memory_init_params(struct romstage_params *params,
+	MEMORY_INIT_UPD *memory_params);
+#endif	/* CONFIG_PLATFORM_USES_FSP */
 void mainboard_pre_console_init(struct romstage_params *params);
 void mainboard_romstage_entry(struct romstage_params *params);
 void mainboard_save_dimm_info(struct romstage_params *params);
 void raminit(struct romstage_params *params);
 void report_memory_config(void);
 void report_platform_info(void);
-asmlinkage void romstage_after_car(void);
+asmlinkage void romstage_after_car(void *chipset_context);
 void romstage_common(struct romstage_params *params);
 asmlinkage void *romstage_main(unsigned int bist, uint32_t tsc_lo,
-			       uint32_t tsc_high);
+			       uint32_t tsc_high, void *chipset_context);
 void *setup_stack_and_mtrrs(void);
 void set_max_freq(void);
 void soc_after_ram_init(struct romstage_params *params);
-void soc_after_silicon_init(void);
 void soc_after_temp_ram_exit(void);
+#if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
+void soc_display_memory_init_params(const MEMORY_INIT_UPD *old,
+	MEMORY_INIT_UPD *new);
+void soc_memory_init_params(MEMORY_INIT_UPD *params);
+#endif	/* CONFIG_PLATFORM_USES_FSP */
 void soc_pre_console_init(struct romstage_params *params);
 void soc_pre_ram_init(struct romstage_params *params);
 void soc_romstage_init(struct romstage_params *params);

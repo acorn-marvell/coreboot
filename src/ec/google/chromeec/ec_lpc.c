@@ -28,13 +28,144 @@
 #include "ec.h"
 #include "ec_commands.h"
 
+/*
+ * Read bytes from a given LPC-mapped address.
+ *
+ * @port: Base read address
+ * @length: Number of bytes to read
+ * @dest: Destination buffer
+ * @csum: Optional parameter, sums data read
+ */
+static void read_bytes(u16 port, unsigned int length, u8 *dest, u8 *csum)
+{
+	int i;
+
+#if CONFIG_EC_GOOGLE_CHROMEEC_MEC
+	/* Access desired range though EMI interface */
+	if (port >= MEC_EMI_RANGE_START && port <= MEC_EMI_RANGE_END) {
+		mec_io_bytes(0, port, length, dest, csum);
+		return;
+	}
+#endif
+
+	for (i = 0; i < length; ++i) {
+		dest[i] = inb(port + i);
+		if (csum)
+			*csum += dest[i];
+	}
+}
+
+/* Read single byte and return byte read */
+static inline u8 read_byte(u16 port)
+{
+	u8 byte;
+	read_bytes(port, 1, &byte, NULL);
+	return byte;
+}
+
+/*
+ * Write bytes to a given LPC-mapped address.
+ *
+ * @port: Base write address
+ * @length: Number of bytes to write
+ * @msg: Write data buffer
+ * @csum: Optional parameter, sums data written
+ */
+static void write_bytes(u16 port, unsigned int length, u8 *msg, u8 *csum)
+{
+	int i;
+
+#if CONFIG_EC_GOOGLE_CHROMEEC_MEC
+	/* Access desired range though EMI interface */
+	if (port >= MEC_EMI_RANGE_START && port <= MEC_EMI_RANGE_END) {
+		mec_io_bytes(1, port, length, msg, csum);
+		return;
+	}
+#endif
+
+	for (i = 0; i < length; ++i) {
+		outb(msg[i], port + i);
+		if (csum)
+			*csum += msg[i];
+	}
+}
+
+/* Write single byte and return byte written */
+static inline u8 write_byte(u8 val, u16 port)
+{
+	u8 byte = val;
+	write_bytes(port, 1, &byte, NULL);
+	return byte;
+}
+
+static int google_chromeec_wait_ready(u16 port)
+{
+	u8 ec_status = read_byte(port);
+	u32 time_count = 0;
+
+	/*
+	 * One second is more than plenty for any EC operation to complete
+	 * (and the bus accessing/code execution) overhead will make the
+	 * timeout even longer.
+	 */
+#define MAX_EC_TIMEOUT_US 1000000
+
+	while (ec_status &
+	       (EC_LPC_CMDR_PENDING | EC_LPC_CMDR_BUSY)) {
+		udelay(1);
+		if (time_count++ == MAX_EC_TIMEOUT_US)
+			return -1;
+		ec_status = read_byte(port);
+	}
+	return 0;
+}
+
+#if CONFIG_EC_GOOGLE_CHROMEEC_ACPI_MEMMAP
+/* Read memmap data through ACPI port 66/62 */
+static int read_memmap(u8 *data, u8 offset)
+{
+	if (google_chromeec_wait_ready(EC_LPC_ADDR_ACPI_CMD)) {
+		printk(BIOS_ERR, "Timeout waiting for EC ready!\n");
+		return -1;
+	}
+
+	/* Issue the ACPI read command */
+	write_byte(EC_CMD_ACPI_READ, EC_LPC_ADDR_ACPI_CMD);
+
+	if (google_chromeec_wait_ready(EC_LPC_ADDR_ACPI_CMD)) {
+		printk(BIOS_ERR, "Timeout waiting for EC READ_EVENT!\n");
+		return -1;
+	}
+
+	/* Write data address */
+	write_byte(offset + EC_ACPI_MEM_MAPPED_BEGIN, EC_LPC_ADDR_ACPI_DATA);
+
+	if (google_chromeec_wait_ready(EC_LPC_ADDR_ACPI_CMD)) {
+		printk(BIOS_ERR, "Timeout waiting for EC DATA!\n");
+		return -1;
+	}
+
+	*data = read_byte(EC_LPC_ADDR_ACPI_DATA);
+	return 0;
+}
+#endif
+
 static int google_chromeec_command_version(void)
 {
 	u8 id1, id2, flags;
 
-	id1 = inb(EC_LPC_ADDR_MEMMAP + EC_MEMMAP_ID);
-	id2 = inb(EC_LPC_ADDR_MEMMAP + EC_MEMMAP_ID + 1);
-	flags = inb(EC_LPC_ADDR_MEMMAP + EC_MEMMAP_HOST_CMD_FLAGS);
+#if CONFIG_EC_GOOGLE_CHROMEEC_ACPI_MEMMAP
+	if (read_memmap(&id1, EC_MEMMAP_ID) ||
+	    read_memmap(&id2, EC_MEMMAP_ID + 1) ||
+	    read_memmap(&flags, EC_MEMMAP_HOST_CMD_FLAGS)) {
+		printk(BIOS_ERR, "Error reading memmap data.\n");
+		return -1;
+	}
+#else
+	id1 = read_byte(EC_LPC_ADDR_MEMMAP + EC_MEMMAP_ID);
+	id2 = read_byte(EC_LPC_ADDR_MEMMAP + EC_MEMMAP_ID + 1);
+	flags = read_byte(EC_LPC_ADDR_MEMMAP + EC_MEMMAP_HOST_CMD_FLAGS);
+#endif
 
 	if (id1 != 'E' || id2 != 'C') {
 		printk(BIOS_ERR, "Missing Chromium EC memory map.\n");
@@ -52,35 +183,12 @@ static int google_chromeec_command_version(void)
 	}
 }
 
-static int google_chromeec_wait_ready(u16 port)
-{
-	u8 ec_status = inb(port);
-	u32 time_count = 0;
-
-	/*
-	 * One second is more than plenty for any EC operation to complete
-	 * (and the bus accessing/code execution) overhead will make the
-	 * timeout even longer.
-	 */
-#define MAX_EC_TIMEOUT_US 1000000
-
-	while (ec_status &
-	       (EC_LPC_CMDR_PENDING | EC_LPC_CMDR_BUSY)) {
-		udelay(1);
-		if (time_count++ == MAX_EC_TIMEOUT_US)
-			return -1;
-		ec_status = inb(port);
-	}
-	return 0;
-}
-
 static int google_chromeec_command_v3(struct chromeec_command *cec_command)
 {
 	struct ec_host_request rq;
 	struct ec_host_response rs;
 	const u8 *d;
-	u8 *dout;
-	int csum = 0;
+	u8 csum = 0;
 	int i;
 
 	if (cec_command->cmd_size_in + sizeof(rq) > EC_LPC_HOST_PACKET_SIZE) {
@@ -111,25 +219,23 @@ static int google_chromeec_command_v3(struct chromeec_command *cec_command)
 	rq.data_len = cec_command->cmd_size_in;
 
 	/* Copy data and start checksum */
-	for (i = 0, d = (const u8 *)cec_command->cmd_data_in;
-	     i < cec_command->cmd_size_in; i++, d++) {
-		outb(*d, EC_LPC_ADDR_HOST_PACKET + sizeof(rq) + i);
-		csum += *d;
-	}
+	write_bytes(EC_LPC_ADDR_HOST_PACKET + sizeof(rq),
+		    cec_command->cmd_size_in,
+		    (u8*)cec_command->cmd_data_in,
+		    &csum);
 
 	/* Finish checksum */
 	for (i = 0, d = (const u8 *)&rq; i < sizeof(rq); i++, d++)
 		csum += *d;
 
 	/* Write checksum field so the entire packet sums to 0 */
-	rq.checksum = (u8)(-csum);
+	rq.checksum = -csum;
 
 	/* Copy header */
-	for (i = 0, d = (const uint8_t *)&rq; i < sizeof(rq); i++, d++)
-		outb(*d, EC_LPC_ADDR_HOST_PACKET + i);
+	write_bytes(EC_LPC_ADDR_HOST_PACKET, sizeof(rq), (u8*)&rq, NULL);
 
 	/* Start the command */
-	outb(EC_COMMAND_PROTOCOL_3, EC_LPC_ADDR_HOST_CMD);
+	write_byte(EC_COMMAND_PROTOCOL_3, EC_LPC_ADDR_HOST_CMD);
 
 	if (google_chromeec_wait_ready(EC_LPC_ADDR_HOST_CMD)) {
 		printk(BIOS_ERR, "Timeout waiting for EC process command %d!\n",
@@ -138,7 +244,7 @@ static int google_chromeec_command_v3(struct chromeec_command *cec_command)
 	}
 
 	/* Check result */
-	cec_command->cmd_code = inb(EC_LPC_ADDR_HOST_DATA);
+	cec_command->cmd_code = read_byte(EC_LPC_ADDR_HOST_DATA);
 	if (cec_command->cmd_code) {
 		printk(BIOS_ERR, "EC returned error result code %d\n",
 			cec_command->cmd_code);
@@ -147,10 +253,7 @@ static int google_chromeec_command_v3(struct chromeec_command *cec_command)
 
 	/* Read back response header and start checksum */
 	csum = 0;
-	for (i = 0, dout = (u8 *)&rs; i < sizeof(rs); i++, dout++) {
-		*dout = inb(EC_LPC_ADDR_HOST_PACKET + i);
-		csum += *dout;
-	}
+	read_bytes(EC_LPC_ADDR_HOST_PACKET, sizeof(rs), (u8*)&rs, &csum);
 
 	if (rs.struct_version != EC_HOST_RESPONSE_VERSION) {
 		printk(BIOS_ERR, "EC response version mismatch (%d != %d)\n",
@@ -171,14 +274,13 @@ static int google_chromeec_command_v3(struct chromeec_command *cec_command)
 	}
 
 	/* Read back data and update checksum */
-	for (i = 0, dout = (uint8_t *)cec_command->cmd_data_out;
-	     i < rs.data_len; i++, dout++) {
-		*dout = inb(EC_LPC_ADDR_HOST_PACKET + sizeof(rs) + i);
-		csum += *dout;
-	}
+	read_bytes(EC_LPC_ADDR_HOST_PACKET + sizeof(rs),
+		   rs.data_len,
+		   cec_command->cmd_data_out,
+		   &csum);
 
 	/* Verify checksum */
-	if ((u8)csum) {
+	if (csum) {
 		printk(BIOS_ERR, "EC response has invalid checksum\n");
 		return -1;
 	}
@@ -189,11 +291,8 @@ static int google_chromeec_command_v3(struct chromeec_command *cec_command)
 static int google_chromeec_command_v1(struct chromeec_command *cec_command)
 {
 	struct ec_lpc_host_args args;
-	const u8 *d;
-	u8 *dout;
 	u8 cmd_code = cec_command->cmd_code;
-	int csum;
-	int i;
+	u8 csum;
 
 	/* Fill in args */
 	args.flags = EC_HOST_ARGS_FLAG_FROM_HOST;
@@ -203,21 +302,18 @@ static int google_chromeec_command_v1(struct chromeec_command *cec_command)
 	/* Initialize checksum */
 	csum = cmd_code + args.flags + args.command_version + args.data_size;
 
-	/* Write data and update checksum */
-	for (i = 0, d = (const u8 *)cec_command->cmd_data_in;
-	     i < cec_command->cmd_size_in; i++, d++) {
-		outb(*d, EC_LPC_ADDR_HOST_PARAM + i);
-		csum += *d;
-	}
+	write_bytes(EC_LPC_ADDR_HOST_PARAM,
+		    cec_command->cmd_size_in,
+		    (u8*)cec_command->cmd_data_in,
+		    &csum);
 
 	/* Finalize checksum and write args */
-	args.checksum = (u8)csum;
-	for (i = 0, d = (const u8 *)&args; i < sizeof(args); i++, d++)
-		outb(*d, EC_LPC_ADDR_HOST_ARGS + i);
+	args.checksum = csum;
+	write_bytes(EC_LPC_ADDR_HOST_ARGS, sizeof(args), (u8*)&args, NULL);
 
 
 	/* Issue the command */
-	outb(cmd_code, EC_LPC_ADDR_HOST_CMD);
+	write_byte(cmd_code, EC_LPC_ADDR_HOST_CMD);
 
 	if (google_chromeec_wait_ready(EC_LPC_ADDR_HOST_CMD)) {
 		printk(BIOS_ERR, "Timeout waiting for EC process command %d!\n",
@@ -226,13 +322,12 @@ static int google_chromeec_command_v1(struct chromeec_command *cec_command)
 	}
 
 	/* Check result */
-	cec_command->cmd_code = inb(EC_LPC_ADDR_HOST_DATA);
+	cec_command->cmd_code = read_byte(EC_LPC_ADDR_HOST_DATA);
 	if (cec_command->cmd_code)
 		return 1;
 
 	/* Read back args */
-	for (i = 0, dout = (u8 *)&args; i < sizeof(args); i++, dout++)
-		*dout = inb(EC_LPC_ADDR_HOST_ARGS + i);
+	read_bytes(EC_LPC_ADDR_HOST_ARGS, sizeof(args), (u8*)&args, NULL);
 
 	/*
 	 * If EC didn't modify args flags, then somehow we sent a new-style
@@ -254,14 +349,13 @@ static int google_chromeec_command_v1(struct chromeec_command *cec_command)
 	csum = cmd_code + args.flags + args.command_version + args.data_size;
 
 	/* Read data, if any */
-	for (i = 0, dout = (u8 *)cec_command->cmd_data_out;
-	     i < args.data_size; i++, dout++) {
-		*dout = inb(EC_LPC_ADDR_HOST_PARAM + i);
-		csum += *dout;
-	}
+	read_bytes(EC_LPC_ADDR_HOST_PARAM,
+		   args.data_size,
+		   cec_command->cmd_data_out,
+		   &csum);
 
 	/* Verify checksum */
-	if (args.checksum != (u8)csum) {
+	if (args.checksum != csum) {
 		printk(BIOS_ERR, "EC response has invalid checksum\n");
 		return 1;
 	}
@@ -352,7 +446,7 @@ u8 google_chromeec_get_event(void)
 	}
 
 	/* Issue the ACPI query-event command */
-	outb(EC_CMD_ACPI_QUERY_EVENT, EC_LPC_ADDR_ACPI_CMD);
+	write_byte(EC_CMD_ACPI_QUERY_EVENT, EC_LPC_ADDR_ACPI_CMD);
 
 	if (google_chromeec_wait_ready(EC_LPC_ADDR_ACPI_CMD)) {
 		printk(BIOS_ERR, "Timeout waiting for EC QUERY_EVENT!\n");
@@ -360,6 +454,6 @@ u8 google_chromeec_get_event(void)
 	}
 
 	/* Event (or 0 if none) is returned directly in the data byte */
-	return inb(EC_LPC_ADDR_ACPI_DATA);
+	return read_byte(EC_LPC_ADDR_ACPI_DATA);
 }
 #endif

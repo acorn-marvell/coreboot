@@ -31,6 +31,7 @@
 #include <soc/clock.h>
 #include <soc/cpu.h>
 #include <soc/mc.h>
+#include <soc/mtc.h>
 #include <soc/nvidia/tegra/apbmisc.h>
 #include <string.h>
 #include <timer.h>
@@ -67,9 +68,9 @@ static size_t cntrl_total_cpus(void)
 
 static int cntrl_start_cpu(unsigned int id, void (*entry)(void))
 {
-	if (id != 1)
+	if (id >= CONFIG_MAX_CPUS)
 		return -1;
-	start_cpu(1, entry);
+	start_cpu(id, entry);
 	return 0;
 }
 
@@ -85,7 +86,15 @@ static void lock_down_vpr(void)
 
 	write32(&regs->video_protect_bom, 0);
 	write32(&regs->video_protect_size_mb, 0);
-	write32(&regs->video_protect_reg_ctrl, 1);
+
+	write32(&regs->video_protect_gpu_override_0, 1);
+	/*
+	 * Set both _ACCESS bits so that kernel/secure code
+	 * can reconfig VPR careveout as needed from the TrustZone.
+	 */
+
+	write32(&regs->video_protect_reg_ctrl,
+		(MC_VPR_WR_ACCESS_DISABLE | MC_VPR_ALLOW_TZ_WR_ACCESS_ENABLE));
 }
 
 static void soc_init(device_t dev)
@@ -135,8 +144,6 @@ static void tegra210_init(void *chip_info)
 
 	printk(BIOS_INFO, "chip %x rev %02x.%x\n",
 		rev.chip_id, rev.major, rev.minor);
-
-	printk(BIOS_INFO, "MTS build %u\n", raw_read_aidr_el1());
 }
 
 struct chip_operations soc_nvidia_tegra210_ops = {
@@ -147,10 +154,13 @@ struct chip_operations soc_nvidia_tegra210_ops = {
 
 static void tegra210_cpu_init(device_t cpu)
 {
+	if (cpu_is_bsp())
+		if (tegra210_run_mtc() != 0)
+			printk(BIOS_ERR, "MTC: Training failed\n");
 }
 
 static const struct cpu_device_id ids[] = {
-	{ 0x4e0f0000 },
+	{ 0x411fd071 },
 	{ CPU_ID_END },
 };
 

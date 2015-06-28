@@ -26,6 +26,10 @@
 enum {
 	ENABLE_GRP0 = 0x1 << 0,
 	ENABLE_GRP1 = 0x1 << 1,
+	FIQ_BYP_DIS_GRP0 = 0x1 << 5,
+	IRQ_BYP_DIS_GRP0 = 0x1 << 6,
+	FIQ_BYP_DIS_GRP1 = 0x1 << 7,
+	IRQ_BYP_DIS_GRP1 = 0x1 << 8,
 };
 
 struct gic {
@@ -57,6 +61,11 @@ static struct gic *gic_get(void)
 	}
 
 	return &gic;
+}
+
+static inline uint32_t gic_read(uint32_t *base)
+{
+	return read32(base);
 }
 
 static inline void gic_write(uint32_t *base, uint32_t val)
@@ -117,4 +126,39 @@ void gic_init(void)
 	gic_write_regs(&gicd->igroupr[0], gic->num_interrupts / 32, ~0x0);
 	/* Allow Non-secure access to everything. */
 	gic_write_regs(&gicd->nsacr[0], gic->num_interrupts / 16, ~0x0);
+}
+
+void gic_disable(void)
+{
+	struct gic *gic;
+	struct gicc_mmio *gicc;
+
+	gic = gic_get();
+	gicc = gic->gicc;
+
+	/* Disable secure, non-secure interrupts. */
+	uint32_t val = gic_read(&gicc->ctlr);
+	val &= ~(ENABLE_GRP0 | ENABLE_GRP1);
+	/*
+	 * Enable the IRQ/FIQ BypassDisable bits to bypass the IRQs.
+	 * So the CPU can wake up from power gating state when the GIC
+	 * was disabled.
+	 */
+	val |= FIQ_BYP_DIS_GRP0 | IRQ_BYP_DIS_GRP0 |
+	       FIQ_BYP_DIS_GRP1 | IRQ_BYP_DIS_GRP1;
+	gic_write(&gicc->ctlr, val);
+}
+
+void gic_enable(void)
+{
+	struct gic *gic;
+	struct gicc_mmio *gicc;
+
+	gic = gic_get();
+	gicc = gic->gicc;
+
+	/* Enable secure, non-secure interrupts. */
+	uint32_t val = gic_read(&gicc->ctlr);
+	val |= (ENABLE_GRP0 | ENABLE_GRP1);
+	gic_write(&gicc->ctlr, val);
 }

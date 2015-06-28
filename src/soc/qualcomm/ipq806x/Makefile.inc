@@ -30,7 +30,7 @@ verstage-y += i2c.c
 verstage-y += qup.c
 verstage-y += spi.c
 verstage-y += timer.c
-verstage-$(CONFIG_CONSOLE_SERIAL_IPQ806X) += uart.c
+verstage-y += uart.c
 
 romstage-y += clock.c
 romstage-y += blobs_init.c
@@ -83,7 +83,7 @@ INCLUDES += -Isrc/soc/qualcomm/ipq806x/include
 mbn-files := cdt.mbn  ddr.mbn  rpm.mbn tz.mbn
 
 # Location of the binary blobs
-mbn-root := 3rdparty/cpu/qualcomm/ipq806x
+mbn-root := 3rdparty/blobs/cpu/qualcomm/ipq806x
 
 # Create make variables to aid cbfs-files-handler in processing the blobs (add
 # them all as raw binaries at the root level).

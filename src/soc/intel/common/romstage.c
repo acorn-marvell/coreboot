@@ -27,14 +27,17 @@
 #include <arch/early_variables.h>
 #include <console/console.h>
 #include <cbmem.h>
+#include <cpu/x86/msr.h>
 #include <cpu/x86/mtrr.h>
 #include <ec/google/chromeec/ec.h>
 #include <ec/google/chromeec/ec_commands.h>
 #include <elog.h>
+#include <memory_info.h>
 #include <ramstage_cache.h>
 #include <reset.h>
 #include <romstage_handoff.h>
 #include <soc/intel/common/mrc_cache.h>
+#include <soc/intel/common/util.h>
 #include <soc/pei_wrapper.h>
 #include <soc/pm.h>
 #include <soc/romstage.h>
@@ -44,13 +47,15 @@
 
 /* Entry from cache-as-ram.inc. */
 asmlinkage void *romstage_main(unsigned int bist,
-				uint32_t tsc_low, uint32_t tsc_high)
+				uint32_t tsc_low, uint32_t tsc_high,
+				void *chipset_context)
 {
 	void *top_of_stack;
 	struct pei_data pei_data;
 	struct romstage_params params = {
 		.bist = bist,
 		.pei_data = &pei_data,
+		.chipset_context = chipset_context,
 	};
 
 	post_code(0x30);
@@ -82,7 +87,7 @@ asmlinkage void *romstage_main(unsigned int bist,
 	/* Display FSP banner */
 #if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
 	printk(BIOS_DEBUG, "FSP TempRamInit successful\n");
-	print_fsp_info(find_fsp());
+	print_fsp_info(params.chipset_context);
 #endif	/* CONFIG_PLATFORM_USES_FSP */
 
 	/* Get power state */
@@ -194,32 +199,14 @@ void romstage_common(struct romstage_params *params)
 #endif
 }
 
-asmlinkage void romstage_after_car(void)
+asmlinkage void romstage_after_car(void *chipset_context)
 {
-#if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
-	FSP_INFO_HEADER *fsp_info_header;
-	FSP_SILICON_INIT fsp_silicon_init;
-	EFI_STATUS status;
-
-	timestamp_add_now(TS_FSP_TEMP_RAM_EXIT_END);
-	printk(BIOS_DEBUG, "FspTempRamExit returned successfully\n");
-	soc_after_temp_ram_exit();
-
-	/* Find the FSP image */
-	timestamp_add_now(TS_FSP_FIND_START);
-	fsp_info_header = find_fsp();
-	timestamp_add_now(TS_FSP_FIND_END);
-
-	/* Perform silicon initialization after RAM is configured */
-	printk(BIOS_DEBUG, "Calling FspSiliconInit\n");
-	fsp_silicon_init = (FSP_SILICON_INIT)(fsp_info_header->ImageBase
-		+ fsp_info_header->FspSiliconInitEntryOffset);
-	timestamp_add_now(TS_FSP_SILICON_INIT_START);
-	status = fsp_silicon_init(NULL);
-	timestamp_add_now(TS_FSP_SILICON_INIT_END);
-	printk(BIOS_DEBUG, "FspSiliconInit returned 0x%08x\n", status);
-	soc_after_silicon_init();
-#endif	/* CONFIG_PLATFORM_USES_FSP */
+	if (IS_ENABLED(CONFIG_PLATFORM_USES_FSP)) {
+		timestamp_add_now(TS_FSP_TEMP_RAM_EXIT_END);
+		printk(BIOS_DEBUG, "FspTempRamExit returned successfully\n");
+		soc_after_temp_ram_exit();
+		soc_display_mtrrs();
+	}
 
 	timestamp_add_now(TS_END_ROMSTAGE);
 
@@ -230,16 +217,6 @@ asmlinkage void romstage_after_car(void)
 	copy_and_run();
 	die("ERROR - Failed to load ramstage!");
 }
-
-#if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
-__attribute__((weak)) void board_fsp_memory_init_params(
-	struct romstage_params *params,
-	FSP_INFO_HEADER *fsp_header,
-	FSP_MEMORY_INIT_PARAMS * fsp_memory_init_params)
-{
-	printk(BIOS_DEBUG, "WEAK: %s/%s called\n", __FILE__, __func__);
-}
-#endif	/* CONFIG_PLATFORM_USES_FSP */
 
 /* Initialize the power state */
 __attribute__((weak)) struct chipset_power_state *fill_power_state(void)
@@ -282,12 +259,109 @@ __attribute__((weak)) void mainboard_romstage_entry(
 	romstage_common(params);
 }
 
-/* Used by MRC images to save DIMM information */
+/* Save the DIMM information for SMBIOS table 17 */
+#if IS_ENABLED(CONFIG_PLATFORM_USES_FSP)
+__attribute__((weak)) void mainboard_save_dimm_info(
+	struct romstage_params *params)
+{
+	int channel;
+	CHANNEL_INFO *channel_info;
+	int dimm;
+	DIMM_INFO *dimm_info;
+	int dimm_max;
+	void *hob_list_ptr;
+	EFI_HOB_GUID_TYPE *hob_ptr;
+	int index;
+	struct memory_info *mem_info;
+	FSP_SMBIOS_MEMORY_INFO *memory_info_hob;
+	const EFI_GUID memory_info_hob_guid = FSP_SMBIOS_MEMORY_INFO_GUID;
+
+	/* Locate the memory info HOB, presence validated by raminit */
+	hob_list_ptr = fsp_get_hob_list();
+	hob_ptr = get_next_guid_hob(&memory_info_hob_guid, hob_list_ptr);
+	memory_info_hob = (FSP_SMBIOS_MEMORY_INFO *)(hob_ptr + 1);
+
+	/* Display the data in the FSP_SMBIOS_MEMORY_INFO HOB */
+	if (IS_ENABLED(CONFIG_DISPLAY_HOBS)) {
+		printk(BIOS_DEBUG, "FSP_SMBIOS_MEMORY_INFO HOB\n");
+		printk(BIOS_DEBUG, "    0x%02x: Revision\n",
+			memory_info_hob->Revision);
+		printk(BIOS_DEBUG, "    0x%02x: MemoryType\n",
+			memory_info_hob->MemoryType);
+		printk(BIOS_DEBUG, "  0x%04x: MemoryFrequencyInMHz\n",
+			memory_info_hob->MemoryFrequencyInMHz);
+		printk(BIOS_DEBUG, "    0x%02x: ErrorCorrectionType\n",
+			memory_info_hob->ErrorCorrectionType);
+		printk(BIOS_DEBUG, "    0x%02x: ChannelCount\n",
+			memory_info_hob->ChannelCount);
+		for (channel = 0; channel < memory_info_hob->ChannelCount;
+			channel++) {
+			channel_info = &memory_info_hob->ChannelInfo[channel];
+			printk(BIOS_DEBUG, "  Channel %d\n", channel);
+			printk(BIOS_DEBUG, "      0x%02x: ChannelId\n",
+				channel_info->ChannelId);
+			printk(BIOS_DEBUG, "      0x%02x: DimmCount\n",
+				channel_info->DimmCount);
+			for (dimm = 0; dimm < channel_info->DimmCount;
+				dimm++) {
+				dimm_info = &channel_info->DimmInfo[dimm];
+				printk(BIOS_DEBUG, "   DIMM %d\n", dimm);
+				printk(BIOS_DEBUG, "      0x%02x: DimmId\n",
+					dimm_info->DimmId);
+				printk(BIOS_DEBUG, "      0x%02x: SizeInMb\n",
+					dimm_info->SizeInMb);
+			}
+		}
+	}
+
+	/*
+	 * Allocate CBMEM area for DIMM information used to populate SMBIOS
+	 * table 17
+	 */
+	mem_info = cbmem_add(CBMEM_ID_MEMINFO, sizeof(*mem_info));
+	printk(BIOS_DEBUG, "CBMEM entry for DIMM info: 0x%p\n", mem_info);
+	if (mem_info == NULL)
+		return;
+	memset(mem_info, 0, sizeof(*mem_info));
+
+	/* Describe the first N DIMMs in the system */
+	index = 0;
+	dimm_max = ARRAY_SIZE(mem_info->dimm);
+	for (channel = 0; channel < memory_info_hob->ChannelCount; channel++) {
+		if (index >= dimm_max)
+			break;
+		channel_info = &memory_info_hob->ChannelInfo[channel];
+		for (dimm = 0; dimm < channel_info->DimmCount; dimm++) {
+			if (index >= dimm_max)
+				break;
+			dimm_info = &channel_info->DimmInfo[dimm];
+
+			/* Populate the DIMM information */
+			if (dimm_info->SizeInMb) {
+				mem_info->dimm[index].dimm_size =
+					dimm_info->SizeInMb;
+				mem_info->dimm[index].ddr_type =
+					memory_info_hob->MemoryType;
+				mem_info->dimm[index].ddr_frequency =
+					memory_info_hob->MemoryFrequencyInMHz;
+				mem_info->dimm[index].channel_num =
+					channel_info->ChannelId;
+				mem_info->dimm[index].dimm_num =
+					dimm_info->DimmId;
+				index++;
+			}
+		}
+	}
+	mem_info->dimm_cnt = index;
+	printk(BIOS_DEBUG, "%d DIMMs found\n", mem_info->dimm_cnt);
+}
+#else
 __attribute__((weak)) void mainboard_save_dimm_info(
 	struct romstage_params *params)
 {
 	printk(BIOS_DEBUG, "WEAK: %s/%s called\n", __FILE__, __func__);
 }
+#endif
 
 /* Get the memory configuration data */
 __attribute__((weak)) int mrc_cache_get_current(
@@ -340,12 +414,6 @@ __attribute__((weak)) void set_max_freq(void)
 
 /* SOC initialization after RAM is enabled */
 __attribute__((weak)) void soc_after_ram_init(struct romstage_params *params)
-{
-	printk(BIOS_DEBUG, "WEAK: %s/%s called\n", __FILE__, __func__);
-}
-
-/* SOC initialization after FSP silicon init */
-__attribute__((weak)) void soc_after_silicon_init(void)
 {
 	printk(BIOS_DEBUG, "WEAK: %s/%s called\n", __FILE__, __func__);
 }

@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
+#include <assert.h>
 #include <arch/io.h>
 #include <console/console.h>
 #include <soc/addressmap.h>
@@ -26,6 +26,7 @@
 #include <soc/sdram.h>
 #include <stdlib.h>
 #include <symbols.h>
+#include <soc/nvidia/tegra/types.h>
 
 static uintptr_t tz_base_mib;
 static const size_t tz_size_mib = CONFIG_TRUSTZONE_CARVEOUT_SIZE_MB;
@@ -70,6 +71,7 @@ void carveout_range(int id, uintptr_t *base_mib, size_t *size_mib)
 	*base_mib = 0;
 	*size_mib = 0;
 	struct tegra_mc_regs * const mc = (struct tegra_mc_regs *)TEGRA_MC_BASE;
+	size_t region_size_mb;
 
 	switch (id) {
 	case CARVEOUT_TZ:
@@ -94,13 +96,63 @@ void carveout_range(int id, uintptr_t *base_mib, size_t *size_mib)
 					read32(&mc->video_protect_bom_adr_hi),
 					read32(&mc->video_protect_size_mb));
 		break;
+	case CARVEOUT_GPU:
+		/* These carveout regs use 128KB granularity - convert to MB */
+		region_size_mb = DIV_ROUND_UP(read32(&mc->security_carveout2_size_128kb), 8);
+
+		/* BOM address set in gpu_region_init, below */
+		carveout_from_regs(base_mib, size_mib,
+					read32(&mc->security_carveout2_bom),
+					read32(&mc->security_carveout2_bom_hi),
+					region_size_mb);
+		break;
 	default:
 		break;
 	}
 }
 
+void print_carveouts(void)
+{
+	int i;
+	printk(BIOS_INFO, "Carveout ranges:\n");
+	for (i = 0; i < CARVEOUT_NUM; i++) {
+		uintptr_t base, end;
+		size_t size;
+		carveout_range(i, &base, &size);
+		end = base + size;
+		if (end && base)
+			printk(BIOS_INFO, "ID:%d [%lx - %lx)\n", i,
+			       (unsigned long)base * MiB,
+			       (unsigned long)end * MiB);
+	}
+}
+
+/*
+ *    Memory Map is as follows
+ *
+ * ------------------------------   <-- Start of DRAM
+ * |                            |
+ * |      Available DRAM        |
+ * |____________________________|
+ * |                            |
+ * |          CBMEM             |
+ * |____________________________|
+ * |                            |
+ * |      Other carveouts       |
+ * | (with dynamic allocation)  |
+ * |____________________________|
+ * |                            |
+ * |    TZ carveout of size     |
+ * | TRUSTZONE_CARVEOUT_SIZE_MB |
+ * |____________________________|   <-- 0x100000000
+ * |                            |
+ * |      Available DRAM        |
+ * |                            |
+ * ------------------------------   <-- End of DRAM
+ *
+ */
 static void memory_in_range(uintptr_t *base_mib, uintptr_t *end_mib,
-				int ignore_tz)
+				int ignore_carveout_id)
 {
 	uintptr_t base;
 	uintptr_t end;
@@ -126,7 +178,7 @@ static void memory_in_range(uintptr_t *base_mib, uintptr_t *end_mib,
 		uintptr_t carveout_end;
 		size_t carveout_size;
 
-		if (i == CARVEOUT_TZ && ignore_tz)
+		if (i == ignore_carveout_id)
 			continue;
 
 		carveout_range(i, &carveout_base, &carveout_size);
@@ -156,14 +208,14 @@ void memory_in_range_below_4gb(uintptr_t *base_mib, uintptr_t *end_mib)
 {
 	*base_mib = 0;
 	*end_mib = 4096;
-	memory_in_range(base_mib, end_mib, 0);
+	memory_in_range(base_mib, end_mib, CARVEOUT_NUM);
 }
 
 void memory_in_range_above_4gb(uintptr_t *base_mib, uintptr_t *end_mib)
 {
 	*base_mib = 4096;
 	*end_mib = ~0UL;
-	memory_in_range(base_mib, end_mib, 0);
+	memory_in_range(base_mib, end_mib, CARVEOUT_NUM);
 }
 
 void trustzone_region_init(void)
@@ -179,8 +231,19 @@ void trustzone_region_init(void)
 	 * Get memory layout below 4GiB ignoring the TZ carveout because
 	 * that's the one to initialize.
 	 */
-	memory_in_range(&tz_base_mib, &end, 1);
 	tz_base_mib = end - tz_size_mib;
+	memory_in_range(&tz_base_mib, &end, CARVEOUT_TZ);
+
+	/*
+	 * IMPORTANT!!!!!
+	 * We need to ensure that trustzone region is located at the end of
+	 * 32-bit address space. If any carveout is allocated space before
+	 * trustzone_region_init is called, then this assert will ensure that
+	 * the boot flow fails. If you are here because of this assert, please
+	 * move your call to initialize carveout after trustzone_region_init in
+	 * romstage and ramstage.
+	 */
+	assert(end == 4096);
 
 	/* AVP cannot set the TZ registers proper as it is always non-secure. */
 	if (context_avp())
@@ -192,4 +255,29 @@ void trustzone_region_init(void)
 
 	/* Enable SMMU translations */
 	write32(&mc->smmu_config, MC_SMMU_CONFIG_ENABLE);
+}
+
+void gpu_region_init(void)
+{
+	struct tegra_mc_regs * const mc = (void *)(uintptr_t)TEGRA_MC_BASE;
+	uintptr_t gpu_base_mib = 0, end = 4096;
+	size_t gpu_size_mib = GPU_CARVEOUT_SIZE_MB;
+
+	/* Get memory layout below 4GiB */
+	memory_in_range(&gpu_base_mib, &end, CARVEOUT_GPU);
+	gpu_base_mib = end - gpu_size_mib;
+
+	/* Set the carveout2 base address. Everything else has been set in the BCT cfg/inc */
+	write32(&mc->security_carveout2_bom, gpu_base_mib << 20);
+	write32(&mc->security_carveout2_bom_hi, 0);
+
+	/* Set the locked bit. This will lock out any other writes! */
+	setbits_le32(&mc->security_carveout2_cfg0, MC_SECURITY_CARVEOUT_LOCKED);
+
+	/* Set the carveout3 base to 0, unused */
+	write32(&mc->security_carveout3_bom, 0);
+	write32(&mc->security_carveout3_bom_hi, 0);
+
+	/* Set the locked bit. This will lock out any other writes! */
+	setbits_le32(&mc->security_carveout3_cfg0, MC_SECURITY_CARVEOUT_LOCKED);
 }

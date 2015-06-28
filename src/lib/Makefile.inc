@@ -21,6 +21,7 @@ bootblock-y += arch_ops.c
 bootblock-y += cbfs.c
 bootblock-$(CONFIG_COMMON_CBFS_SPI_WRAPPER) += cbfs_spi.c
 bootblock-$(CONFIG_GENERIC_GPIO_LIB) += gpio.c
+bootblock-y += libgcc.c
 bootblock-y += memchr.c
 bootblock-y += memcmp.c
 bootblock-$(CONFIG_COLLECT_TIMESTAMPS) += timestamp.c
@@ -43,11 +44,18 @@ $(foreach arch,$(ARCH_SUPPORTED),\
 verstage-y += arch_ops.c
 verstage-y += delay.c
 verstage-y += cbfs.c
+verstage-y += libgcc.c
 verstage-y += memcmp.c
 verstage-$(CONFIG_CONSOLE_CBMEM) += cbmem_console.c
 verstage-$(CONFIG_COMMON_CBFS_SPI_WRAPPER) += cbfs_spi.c
 verstage-$(CONFIG_USE_FMAP) += fmap.c
+
+ifeq ($(MOCK_TPM),1)
+verstage-y += mocked_tlcl.c
+else
 verstage-y += tlcl.c
+endif
+
 verstage-$(CONFIG_GENERIC_UDELAY) += timer.c
 verstage-$(CONFIG_COLLECT_TIMESTAMPS) += timestamp.c
 verstage-$(CONFIG_GENERIC_GPIO_LIB) += gpio.c
@@ -58,6 +66,7 @@ romstage-y += cbfs.c
 romstage-$(CONFIG_COMMON_CBFS_SPI_WRAPPER) += cbfs_spi.c
 romstage-$(CONFIG_USE_FMAP) += fmap.c
 romstage-$(CONFIG_COMPRESS_RAMSTAGE) += lzma.c
+romstage-y += libgcc.c
 #romstage-y += lzmadecode.c
 romstage-$(CONFIG_PRIMITIVE_MEMTEST) += primitive_memtest.c
 ramstage-$(CONFIG_PRIMITIVE_MEMTEST) += primitive_memtest.c
@@ -92,8 +101,8 @@ ramstage-$(CONFIG_USE_FMAP) += fmap.c
 ramstage-y += lzma.c
 #ramstage-y += lzmadecode.c
 ramstage-y += stack.c
+ramstage-y += libgcc.c
 ramstage-$(CONFIG_ARCH_RAMSTAGE_X86_32) += gcc.c
-ramstage-y += clog2.c
 ramstage-$(CONFIG_CONSOLE_SERIAL8250) += uart8250.c
 ramstage-$(CONFIG_CONSOLE_SERIAL8250MEM) += uart8250mem.c
 ramstage-$(CONFIG_CONSOLE_CBMEM) += cbmem_console.c
@@ -108,6 +117,7 @@ ramstage-$(CONFIG_COOP_MULTITASKING) += thread.c
 ramstage-$(CONFIG_TIMER_QUEUE) += timer_queue.c
 ramstage-$(CONFIG_GENERIC_GPIO_LIB) += gpio.c
 ramstage-$(CONFIG_GENERIC_UDELAY) += timer.c
+ramstage-y += b64_decode.c
 
 # The CBMEM implementations are chosen based on CONFIG_DYNAMIC_CBMEM.
 ifeq ($(CONFIG_DYNAMIC_CBMEM),y)
@@ -128,7 +138,7 @@ romstage-$(CONFIG_REG_SCRIPT) += reg_script.c
 
 ramstage-$(CONFIG_CONSOLE_NE2K) += ne2k.c
 
-romstage-$(CONFIG_CACHE_RELOCATED_RAMSTAGE_OUTSIDE_CBMEM) += ramstage_cache.c
+romstage-$(CONFIG_RELOCATABLE_RAMSTAGE) += ramstage_cache.c
 
 ifneq ($(CONFIG_ARCH_X86),y)
 # X86 bootblock and romstage use custom ldscripts that are all glued together,

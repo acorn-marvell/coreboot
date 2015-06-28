@@ -21,18 +21,17 @@ if BOARD_GOOGLE_FOSTER
 
 config BOARD_SPECIFIC_OPTIONS # dummy
         def_bool y
-	select BOARD_ID_SUPPORT
+	select BOARD_ID_AUTO
 	select BOARD_ROMSIZE_KB_4096
 	select CHROMEOS
-	select CHROMEOS_VBNV_EC
-	select EC_GOOGLE_CHROMEEC
-	select EC_GOOGLE_CHROMEEC_SPI
-	select EC_SOFTWARE_SYNC
+	select CHROMEOS_VBNV_FLASH
 	select SPI_FLASH
 	select SOC_NVIDIA_TEGRA210
 	select MAINBOARD_HAS_BOOTBLOCK_INIT
 	select VIRTUAL_DEV_SWITCH
-	select ARCH_SPINTABLE
+	select BOOTROM_SDRAM_INIT # use BootRom to config sdram
+	select COMMON_CBFS_SPI_WRAPPER
+	select SPI_FLASH_WINBOND
 
 config MAINBOARD_DIR
         string
@@ -66,9 +65,9 @@ endchoice
 
 config BOOT_MEDIA_SPI_BUS
 	int "SPI bus with boot media ROM"
-	range 1 6
+	range 1 7
 	depends on FOSTER_BCT_CFG_SPI
-	default 4
+	default 7
 	help
 	  Which SPI bus the boot media is connected to.
 
@@ -94,9 +93,5 @@ config DRIVER_TPM_I2C_BUS
 config DRIVER_TPM_I2C_ADDR
 	hex
 	default 0x20
-
-config EC_GOOGLE_CHROMEEC_SPI_BUS
-	hex
-	default 1
 
 endif # BOARD_GOOGLE_FOSTER

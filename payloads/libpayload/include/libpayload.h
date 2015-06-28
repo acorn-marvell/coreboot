@@ -62,9 +62,19 @@
 #include <lar.h>
 #endif
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ({ \
+	typeof(a) _a = a; \
+	typeof(b) _b = b; \
+	_a < _b ? _a : _b; \
+})
+#define MAX(a, b) ({ \
+	typeof(a) _a = a; \
+	typeof(b) _b = b; \
+	_a > _b ? _a : _b; \
+})
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+static inline u32 div_round_up(u32 n, u32 d) { return n + d - 1 / d; }
 
 #define LITTLE_ENDIAN	1234
 #define BIG_ENDIAN	4321
@@ -307,8 +317,15 @@ long int labs(long int j);
 long long int llabs(long long int j);
 u8 bin2hex(u8 b);
 u8 hex2bin(u8 h);
-void hexdump(unsigned long memory, int length);
+void hexdump(const void *memory, int length);
 void fatal(const char *msg) __attribute__ ((noreturn));
+
+/* Count Leading Zeroes: clz(0) == 32, clz(0xf) == 28, clz(1 << 31) == 0 */
+static inline int clz(u32 x) { return x ? __builtin_clz(x) : sizeof(x) * 8; }
+/* Integer binary logarithm (rounding down): log2(0) == -1, log2(5) == 2 */
+static inline int log2(u32 x) { return sizeof(x) * 8 - clz(x) - 1; }
+/* Find First Set: __ffs(0xf) == 0, __ffs(0) == -1, __ffs(1 << 31) == 31 */
+static inline int __ffs(u32 x) { return log2(x & (u32)(-(s32)x)); }
 /** @} */
 
 

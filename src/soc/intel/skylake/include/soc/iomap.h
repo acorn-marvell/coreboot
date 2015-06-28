@@ -39,8 +39,14 @@
 #define GDXC_BASE_ADDRESS	0xfed84000
 #define GDXC_BASE_SIZE		0x1000
 
+/* TODO: need to remove RCBA code after ASL clean up */
 #define RCBA_BASE_ADDRESS	0xfed1c000
 #define RCBA_BASE_SIZE		0x4000
+
+#define HPET_BASE_ADDRESS	0xfed00000
+
+#define PCH_PWRM_BASE_ADDRESS	0xfe000000
+#define PCH_PWRM_BASE_SIZE	0x10000
 
 #define ACPI_BASE_ADDRESS	0x1800
 #define ACPI_BASE_SIZE		0x100

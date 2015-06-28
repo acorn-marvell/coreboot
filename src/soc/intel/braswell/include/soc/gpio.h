@@ -25,7 +25,7 @@
 #include <arch/io.h>
 #include <soc/iomap.h>
 
-#define COMMUNITY_SIZE			0x20000
+#define COMMUNITY_SIZE	0x20000
 
 #define COMMUNITY_GPSOUTHWEST_BASE	\
 (IO_BASE_ADDRESS + COMMUNITY_OFFSET_GPSOUTHWEST)
@@ -39,10 +39,12 @@
 #define COMMUNITY_GPSOUTHEAST_BASE	\
 (IO_BASE_ADDRESS + COMMUNITY_OFFSET_GPSOUTHEAST)
 
-#define GP_EAST		0
+#define GPIO_COMMUNITY_COUNT		4
+#define GPIO_FAMILIES_MAX_PER_COMM	7
+#define GP_SOUTHWEST	0
 #define GP_NORTH	1
-#define GP_SOUTHEAST	2
-#define GP_SOUTHWEST	3
+#define GP_EAST		2
+#define GP_SOUTHEAST	3
 
 #define COMMUNITY_BASE(community)		\
 (IO_BASE_ADDRESS + community * 0x8000)
@@ -84,6 +86,31 @@
 (COMMUNITY_BASE(community) + 0x1094 + 0x80 * family)
 
 
+/* Value written into pad control reg 0 */
+#define PAD_CONTROL_REG0_TRISTATE      (PAD_CONFIG0_DEFAULT|PAD_GPIOFG_HI_Z)
+
+/* Calculate the MMIO Address for specific GPIO pin
+ * control register pointed by index.
+ */
+#define FAMILY_NUMBER(gpio_pad)		(gpio_pad / MAX_FAMILY_PAD_GPIO_NO)
+#define INTERNAL_PAD_NUM(gpio_pad)	(gpio_pad % MAX_FAMILY_PAD_GPIO_NO)
+#define GPIO_OFFSET(gpio_pad)		(FAMILY_PAD_REGS_OFF \
+			+ (FAMILY_PAD_REGS_SIZE * FAMILY_NUMBER(gpio_pad) \
+			+ (GPIO_REGS_SIZE * INTERNAL_PAD_NUM(gpio_pad))))
+
+/* Gpio to Pad mapping */
+#define SDMMC1_CMD_MMIO_OFFSET		GPIO_OFFSET(23)
+#define SDMMC1_D0_MMIO_OFFSET		GPIO_OFFSET(17)
+#define SDMMC1_D1_MMIO_OFFSET		GPIO_OFFSET(24)
+#define SDMMC1_D2_MMIO_OFFSET		GPIO_OFFSET(20)
+#define SDMMC1_D3_MMIO_OFFSET		GPIO_OFFSET(26)
+#define MMC1_D4_SD_WE_MMIO_OFFSET	GPIO_OFFSET(67)
+#define MMC1_D5_MMIO_OFFSET		GPIO_OFFSET(65)
+#define MMC1_D6_MMIO_OFFSET		GPIO_OFFSET(63)
+#define MMC1_D7_MMIO_OFFSET		GPIO_OFFSET(68)
+#define HV_DDI2_DDC_SDA_MMIO_OFFSET	GPIO_OFFSET(62)
+#define HV_DDI2_DDC_SCL_MMIO_OFFSET	GPIO_OFFSET(67)
+
 /* GPIO Security registers offset */
 #define GPIO_READ_ACCESS_POLICY_REG	0x0000
 #define GPIO_WRITE_ACCESS_POLICY_REG	0x0100
@@ -96,7 +123,6 @@
 #define GPE0A_EN_REG			0x28
 #define ALT_GPIO_SMI_REG		0x38
 #define GPIO_ROUT_REG			0x58
-
 
 /* Pad register offset */
 #define PAD_CONF0_REG			0x0
@@ -130,88 +156,90 @@
 #define FAMILY_PAD_REGS_OFF		0x4400
 #define FAMILY_PAD_REGS_SIZE		0x400
 
-
-/* config0[31:28] - Interrupt Selection Interrupt Select IntSel */
+/* config0[31:28] - Interrupt Selection Interrupt Select */
 #define PAD_INT_SEL(int_s)	(int_s << 28)
 
-/* config0[27:26] - Glitch Filter Config GFCfg */
+/* config0[27:26] - Glitch Filter Config */
 #define PAD_GFCFG(glitch_cfg)		(glitch_cfg << 26)
 #define PAD_GFCFG_DISABLE		(0 << 26)
 #define PAD_ENABLE_EDGE_DETECTION	(1 << 26)  /* EDGE DETECTION ONLY */
 #define PAD_ENABLE_RX_DETECTION		(2 << 26)  /* RX DETECTION ONLY */
 #define PAD_ENABLE_EDGE_RX_DETECTION	(3 << 26)  /* RX & EDGE DETECTION */
 
-/* config0[25:24] - RX/TX Enable Config RxTxEnCfg */
+/* config0[25:24] - RX/TX Enable Config */
 #define PAD_FUNC_CTRL(tx_rx_enable)		(tx_rx_enable << 24)
 #define PAD_FUNC_CTRL_RX_TX_ENABLE		(0 << 24)
 #define PAD_FUNC_CTRL_TX_ENABLE_RX_DISABLE	(1 << 24)
 #define PAD_FUNC_CTRL_TX_ENABLE_RX_ENABLE	(2 << 24)
 #define PAD_TX_RX_ENABLE			(3 << 24)
 
-/* config0[23:20] - Termination TERM */
+/* config0[23:20] - Termination */
 #define PAD_PULL(TERM)		(TERM << 20)
 #define PAD_PULL_DISABLE	(0 << 20)
-
 #define PAD_PULL_DOWN_20K	(1 << 20)
 #define PAD_PULL_DOWN_5K	(2 << 20)
 #define PAD_PULL_DOWN_1K	(4 << 20)
-
 #define PAD_PULL_UP_20K		(9 << 20)
 #define PAD_PULL_UP_5K		(10 << 20)
 #define PAD_PULL_UP_1K		(12 << 20)
 
-/* config0[19:16] - PAD Mode GPIOPM */
-#define PAD_MODE_SELECTION(MODE_SEL)   (MODE_SEL<<16)
+/* config0[19:16] - PAD Mode */
+#define PAD_MODE_SELECTION(MODE_SEL)	(MODE_SEL<<16)
 
-/* config0[15] -   GPIO Enable GPIOEn */
+#define SET_PAD_MODE_SELECTION(pad_config, mode)	\
+	((pad_config & 0xfff0ffff) | PAD_MODE_SELECTION(mode))
+
+/* config0[15] -   GPIO Enable */
 #define PAD_GPIO_DISABLE	(0 << 15)
 #define PAD_GPIO_ENABLE		(1 << 15)
 
-/* config0[14:11] - reserver2 */
+/* config0[14:11] - Reserver2 */
 
-/* config0[10:8] - GPIO Config GPIOCfg */
+/* config0[10:8] - GPIO Config */
 #define PAD_GPIO_CFG(gpio_cfg)	(gpio_cfg << 8)
 #define PAD_GPIOFG_GPIO		(0 << 8)
 #define PAD_GPIOFG_GPO		(1 << 8)
 #define PAD_GPIOFG_GPI		(2 << 8)
 #define PAD_GPIOFG_HI_Z		(3 << 8)
 
-/* config0[7] -   Gpio Light Mode Bar GPIO_Light_b */
-/* config0[6:2] - RESERVE */
-/* config0[1] - GPIO TX State GPIOTXState */
+/* config0[7] - Gpio Light Mode Bar */
+/* config0[6:2] - Reserved1 */
+/* config0[1] - GPIO TX State */
 #define PAD_DEFAULT_TX(STATE)	(STATE<<1)
-/* config0[0] - GPIO RX State GPIORXState */
+/* config0[0] - GPIO RX State */
+#define PAD_RX_BIT	1
 
-/*  Pad Control Register 1 configuration */
+/* Pad Control Register 1 configuration */
 #define PAD_DISABLE_INT		(0 << 0)
 #define PAD_TRIG_EDGE_LOW	(1 << 0)
 #define PAD_TRIG_EDGE_HIGH	(2 << 0)
 #define PAD_TRIG_EDGE_BOTH	(3 << 0)
 #define PAD_TRIG_EDGE_LEVEL	(4 << 0)
 
-/* config0[2:0] - Func. pin mux being used in mainboard.c:182 */
-#define PAD_FUNC2		0x2
-
-/* pad config0 power-on values */
+/* Pad config0 power-on values */
 #define PAD_CONFIG0_DEFAULT	0x00010300
-
 #define PAD_CONFIG0_DEFAULT0	0x00910300
-
 #define PAD_CONFIG0_DEFAULT1	0x00110300
+#define PAD_CONFIG0_GPI_DEFAULT	0x00010200
 
-/* pad config1 reg power-on values */
+/* Pad config1 reg power-on values */
 #define PAD_CONFIG1_DEFAULT0	0x05C00000
 #define PAD_CONFIG1_CSEN	0x0DC00000
 #define PAD_CONFIG1_DEFAULT1	0x05C00020
 
 #define GPIO_INPUT_NO_PULL \
 	{ .pad_conf0 = PAD_PULL_DISABLE | PAD_GPIO_ENABLE \
-		     | PAD_CONFIG0_DEFAULT, \
+		     | PAD_CONFIG0_GPI_DEFAULT, \
 	  .pad_conf1 = PAD_CONFIG1_DEFAULT0 }
 
 #define GPIO_INPUT_PU_20K \
 	{ .pad_conf0 = PAD_PULL_UP_20K | PAD_GPIO_ENABLE \
-		     | PAD_CONFIG0_DEFAULT, \
+		     | PAD_CONFIG0_GPI_DEFAULT, \
+	  .pad_conf1 = PAD_CONFIG1_DEFAULT0 }
+
+#define GPIO_INPUT_PU_5K \
+	{ .pad_conf0 = PAD_PULL_UP_5K | PAD_GPIO_ENABLE \
+		     | PAD_CONFIG0_GPI_DEFAULT, \
 	  .pad_conf1 = PAD_CONFIG1_DEFAULT0 }
 
 #define GPI(int_type, int_sel, term, int_msk, glitch_cfg, wake_msk, gpe_val) { \
@@ -281,7 +309,9 @@
 	.int_mask   = 1,\
 	.gpe        = SMI }
 
-/* common gpio settings */
+#define GPIO_SKIP { .skip_config = 1 }
+
+/* Common GPIO settings */
 #define NATIVE_DEFAULT(mode)	NATIVE_FUNC(mode, 0, 0) /* no pull */
 #define NATIVE_PU20K(mode)	NATIVE_FUNC(mode, 9, 0) /* PH 20k */
 #define NATIVE_PU5K(mode)	NATIVE_FUNC(mode, 10, 0) /* PH 5k */
@@ -300,7 +330,7 @@
 #define NATIVE_TX_RX_M3		NATIVE_FUNC_TX_RX(0, 3, 0, 0) /* no pull */
 #define NATIVE_PU1K_M1		NATIVE_PU1K(1) /* PU1k M1 */
 
-/* default native functions */
+/* Default native functions */
 #define Native_M0		NATIVE_DEFAULT(0)
 #define Native_M1		NATIVE_DEFAULT(1)
 #define Native_M2		NATIVE_DEFAULT(2)
@@ -346,6 +376,7 @@ struct soc_gpio_map {
 	u32 int_mask:1;
 	u32 wake_mask:1;
 	u32 is_gpio:1;
+	u32 skip_config:1;
 } __attribute__ ((packed));
 
 struct soc_gpio_config {
@@ -517,7 +548,28 @@ typedef enum {
 	inv_tx_data	   = 0x8,
 } invert_rx_tx_t;
 
+#define PAD_VAL_HIGH (1 << 0)
+
 void setup_soc_gpios(struct soc_gpio_config *config, u8 enable_xdp_tap);
 struct soc_gpio_config *mainboard_get_gpios(void);
 
+static inline void ncore_select_func(int pad, int func)
+{
+
+}
+
+/* These functions require that the input pad be configured as an input GPIO */
+
+static inline int ssus_get_gpio(int pad)
+{
+	return 0;
+}
+
+static inline void ssus_disable_internal_pull(int pad)
+{
+}
+
+int get_gpio(int community_base, int pad0_offset);
+uint16_t gpio_family_number(uint8_t community, uint8_t pad);
+uint32_t *gpio_pad_config_reg(uint8_t community, uint8_t pad);
 #endif /* _BRASWELL_GPIO_H_ */

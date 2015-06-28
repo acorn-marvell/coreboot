@@ -64,7 +64,8 @@ struct  __attribute__ ((__packed__)) clk_rst_ctlr {
 	u32 _rsv4[2];			/*                      0x0c4-0c8 */
 	u32 pllu_misc;			/* _PLLU_MISC,              0x0cc */
 	u32 plld_base;			/* _PLLD_BASE,              0x0d0 */
-	u32 _rsv5[2];			/*                      0x0d4-0d8 */
+	u32 _rsv5[1];			/*                          0x0d4 */
+	u32 plld_misc1;			/* _PLLD_MISC1,             0x0d8 */
 	u32 plld_misc;			/* _PLLD_MISC,              0x0dc */
 	u32 pllx_base;			/* _PLLX_BASE,              0x0e0 */
 	u32 pllx_misc;			/* _PLLX_MISC,              0x0e4 */
@@ -304,7 +305,11 @@ struct  __attribute__ ((__packed__)) clk_rst_ctlr {
 	u32 clk_src_soc_therm;		/* _CLK_SOURCE_SOC_THERM    0x644 */
 	u32 _rsv33[5];			/*                      0x648-658 */
 	u32 clk_src_i2c6;		/* _CLK_SOURCE_I2C6,        0x65c */
-	u32 _rsv34[25];		/*                      0x680-6c0 */
+	u32 clk_src_mipibif;		/* _CLK_SOURCE_MIPIBIF,     0x660 */
+	u32 clk_src_emc_dll;		/* _CLK_SOURCE_EMC_DLL,     0x664 */
+	u32 _rsv34;			/*                          0x668 */
+	u32 clk_src_uart_fst_mipi_cal;	/* _CLK_SOURCE_UART_FST_MIP_CAL, 0x66c */
+	u32 _rsv35[21];			/*                      0x670-6c0 */
 	u32 clk_src_qspi;		/* _CLK_SOURCE_QSPI         0x6C4 */
 };
 check_member(clk_rst_ctlr, clk_src_qspi, 0x6C4);
@@ -328,9 +333,13 @@ check_member(clk_rst_ctlr, clk_src_qspi, 0x6C4);
 #define SWR_TRIG_SYS_RST		(1 << 2)
 #define SWR_CSITE_RST			(1 << 9)
 #define CLK_ENB_CSITE			(1 << 9)
+#define CLK_ENB_EMC_DLL			(1 << 14)
 
 /* _CCLK_BURST_POLICY 0x20 */
 #define CCLK_BURST_POLICY_VAL		0x20008888
+/* CLK_M divisor */
+#define CLK_M_DIVISOR_MASK		(0x3 << 2)
+#define CLK_M_DIVISOR_BY_2		(1 << 2)
 
 /* CRC_SUPER_CCLK_DIVIDER_0 0x24 */
 #define SUPER_CDIV_ENB_ENABLE		(1 << 31)
@@ -385,7 +394,7 @@ enum {
 
 /* SPECIAL CASE: PLLM, PLLC and PLLX use different-sized fields here */
 #define PLLCX_BASE_DIVP_MASK		(0xfU << PLL_BASE_DIVP_SHIFT)
-#define PLLM_BASE_DIVP_MASK		(0x1U << PLL_BASE_DIVP_SHIFT)
+#define PLLM_BASE_DIVP_MASK		(0x1fU << PLL_BASE_DIVP_SHIFT)
 #define PLLCMX_BASE_DIVN_MASK		(0xffU << PLL_BASE_DIVN_SHIFT)
 #define PLLCMX_BASE_DIVM_MASK		(0xffU << PLL_BASE_DIVM_SHIFT)
 
@@ -395,15 +404,38 @@ enum {
 #define PLLD_N_SHIFT			11
 #define PLLD_M_SHIFT			0
 #define PLLD_P_SHIFT			20
+#define PLLD_MISC1_SETUP		0x20
+#define PLLD_MISC_EN_SDM		(1 << 16)
+#define PLLD_MISC_SDM_DIN		0x9aa
 
 /* PLLM specific registers */
-#define PLLM_MISC1_SETUP_SHIFT			0
+#define PLLM_MISC1_SETUP_SHIFT		0
 #define PLLM_MISC1_PD_LSHIFT_PH45_SHIFT		28
 #define PLLM_MISC1_PD_LSHIFT_PH90_SHIFT		29
 #define PLLM_MISC1_PD_LSHIFT_PH135_SHIFT	30
-#define PLLM_MISC2_KCP_SHIFT			1
-#define PLLM_MISC2_KVCO_SHIFT			0
-#define PLLM_OUT1_RSTN_RESET_DISABLE		(1 << 0)
+#define PLLM_MISC2_KCP_SHIFT		1
+#define PLLM_MISC2_KVCO_SHIFT		0
+#define PLLM_OUT1_RSTN_RESET_DISABLE	(1 << 0)
+#define PLLM_EN_LCKDET          	(1 << 4)
+
+/* PLLU specific registers */
+#define PLLU_MISC_IDDQ			(1U << 31)
+
+/* UTMIP PLL specific registers */
+#define UTMIP_CFG0_PLL_MDIV_SHIFT			(8)
+#define UTMIP_CFG0_PLL_NDIV_SHIFT			(16)
+#define UTMIP_CFG1_XTAL_FREQ_COUNT_SHIFT		(0)
+#define UTMIP_CFG1_FORCE_PLL_ACTIVE_POWERDOWN_DISABLE	(0 << 12)
+#define UTMIP_CFG1_FORCE_PLL_ENABLE_POWERDOWN_DISABLE	(0 << 14)
+#define UTMIP_CFG1_FORCE_PLL_ENABLE_POWERUP_ENABLE	(1 << 15)
+#define UTMIP_CFG1_FORCE_PLLU_POWERDOWN_ENABLE	(1 << 16)
+#define UTMIP_CFG1_PLLU_ENABLE_DLY_COUNT_SHIFT		(27)
+#define UTMIP_CFG2_FORCE_PD_SAMP_A_POWERDOWN_DISABLE	(0 << 0)
+#define UTMIP_CFG2_FORCE_PD_SAMP_B_POWERDOWN_DISABLE	(0 << 2)
+#define UTMIP_CFG2_FORCE_PD_SAMP_C_POWERDOWN_DISABLE	(0 << 4)
+#define UTMIP_CFG2_PLLU_STABLE_COUNT_SHIFT		(6)
+#define UTMIP_CFG2_PLL_ACTIVE_DLY_COUNT_SHIFT		(18)
+#define UTMIP_CFG2_PHY_XTAL_CLOCKEN		(1U << 30)
 
 /* Generic, indiscriminate divisor mask. May catch some innocent bystander bits
  * on the side that we don't particularly care about. */
@@ -443,6 +475,8 @@ enum {
 #define CLK_SOURCE_MASK			(0x7 << CLK_SOURCE_SHIFT)
 
 #define CLK_SOURCE_EMC_MC_EMC_SAME_FREQ (1 << 16)
+#define EMC_2X_CLK_SRC_SHIFT		29
+#define PLLM_UD				4
 
 #define CLK_UART_DIV_OVERRIDE		(1 << 24)
 
@@ -565,5 +599,9 @@ enum {
 	CRC_RST_CPULP_CLR_NONCPU = 0x1 << 29,
 	CRC_RST_CPULP_CLR_PDBG = 0x1 << 30,
 };
+
+#define TIMERUS_CNTR_1US		0x0
+#define TIMERUS_USEC_CFG		0x4
+#define TIMERUS_USEC_CFG_19P2_CLK_M	0x045F
 
 #endif	/* _TEGRA210_CLK_RST_H_ */

@@ -27,6 +27,8 @@
 #include <soc/funitcfg.h>
 #include <soc/nvidia/tegra/i2c.h>
 #include <soc/padconfig.h>
+#include <soc/pmc.h>
+#include <soc/power.h>
 #include <soc/spi.h>
 
 #include "pmic.h"
@@ -56,8 +58,8 @@ static const struct pad_config tpm_pads[] = {
 
 /********************* EC *************************************/
 static const struct pad_config ec_i2c_pads[] = {
-	PAD_CFG_SFIO(GEN2_I2C_SCL, PINMUX_OPEN_DRAIN|PINMUX_INPUT_ENABLE, I2C2),
-	PAD_CFG_SFIO(GEN2_I2C_SDA, PINMUX_OPEN_DRAIN|PINMUX_INPUT_ENABLE, I2C2),
+	PAD_CFG_SFIO(GEN2_I2C_SCL, PINMUX_INPUT_ENABLE, I2C2),
+	PAD_CFG_SFIO(GEN2_I2C_SDA, PINMUX_INPUT_ENABLE, I2C2),
 };
 
 /********************* Funits *********************************/
@@ -116,4 +118,13 @@ void bootblock_mainboard_init(void)
 
 	/* EC */
 	i2c_init(I2C2_BUS);
+
+	/*
+	 * Set power detect override for GPIO, audio & sdmmc3 rails.
+	 * GPIO rail override is required to put it into 1.8V mode.
+	 */
+	pmc_override_pwr_det(PMC_GPIO_RAIL_AO_MASK | PMC_AUDIO_RAIL_AO_MASK |
+			     PMC_SDMMC3_RAIL_AO_MASK, PMC_GPIO_RAIL_AO_DISABLE |
+			     PMC_AUDIO_RAIL_AO_DISABLE |
+			     PMC_SDMMC3_RAIL_AO_DISABLE);
 }

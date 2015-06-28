@@ -55,9 +55,7 @@ static void configure_sdmmc(void)
 	/* use sdmmc0 io, disable JTAG function */
 	write32(&rk3288_grf->soc_con0, RK_CLRBITS(1 << 12));
 
-	/* Note: these power rail definitions are copied in romstage.c */
-	rk808_configure_ldo(4, 3300);	/* VCCIO_SD */
-	rk808_configure_ldo(5, 3300);	/* VCC33_SD */
+	sdmmc_power_on();
 
 	gpio_input(GPIO(7, A, 5));	/* SDMMC_DET_L */
 }
@@ -93,9 +91,38 @@ static void configure_vop(void)
 	/* lcdc(vop) iodomain select 1.8V */
 	write32(&rk3288_grf->io_vsel, RK_SETBITS(1 << 0));
 
+	/*
+	 * BL_EN gates VCC_LCD. This might be changed in future revisions
+	 * of the board so that the display can be stablized before we
+	 * turn on the backlight.
+	 *
+	 * To minimize display corruption, turn off LCDC_BL before
+	 * powering on the backlight.
+	 */
+	gpio_output(GPIO_BACKLIGHT, 1);	/* BL_EN */
+	gpio_output(GPIO_LCDC_BL, 0);
+
+	rk808_configure_switch(1, 1);	/* VCC33_LCD */
+}
+
+static void configure_hdmi(void)
+{
 	rk808_configure_switch(2, 1);	/* VCC18_LCD (HDMI_AVDD_1V8) */
 	rk808_configure_ldo(7, 1000);	/* VDD10_LCD (HDMI_AVDD_1V0) */
-	rk808_configure_switch(1, 1);	/* VCC33_LCD */
+
+	/* set POWER_HDMI_EN */
+	switch (board_id()) {
+	case 0:
+		gpio_output(GPIO(7, A, 2), 1);
+		break;
+	default:
+		gpio_output(GPIO(5, C, 3), 1);
+		break;
+	}
+
+	/* HDMI I2C */
+	write32(&rk3288_grf->iomux_i2c5sda, IOMUX_HDMI_EDP_I2C_SDA);
+	write32(&rk3288_grf->iomux_i2c5scl, IOMUX_HDMI_EDP_I2C_SCL);
 }
 
 static void mainboard_init(device_t dev)
@@ -107,6 +134,7 @@ static void mainboard_init(device_t dev)
 	configure_emmc();
 	configure_codec();
 	configure_vop();
+	configure_hdmi();
 
 	elog_init();
 	elog_add_watchdog_reset();
@@ -135,5 +163,5 @@ void lb_board(struct lb_header *header)
 
 void mainboard_power_on_backlight(void)
 {
-	gpio_output(GPIO_BACKLIGHT, 1);	/* BL_EN */
+	gpio_output(GPIO_LCDC_BL, 1);
 }
