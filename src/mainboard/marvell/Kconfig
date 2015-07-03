@@ -26,12 +26,12 @@ config VENDOR_SPECIFIC_OPTIONS
 choice
 	prompt "Mainboard model"
 
-config BOARD_MARVELL_ACORN
-	bool "Acorn"
+config BOARD_MARVELL_CYCLONE
+	bool "Cyclone"
 
 endchoice
 
-source "src/mainboard/marvell/acorn/Kconfig"
+source "src/mainboard/marvell/cyclone/Kconfig"
 
 config MAINBOARD_VENDOR
 	string "Mainboard Vendor"

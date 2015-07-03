@@ -17,7 +17,7 @@
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 ##
 
-if BOARD_MARVELL_ACORN
+if BOARD_MARVELL_CYCLONE
 
 config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
@@ -30,11 +30,11 @@ config BOARD_SPECIFIC_OPTIONS # dummy
 
 config MAINBOARD_DIR
 	string
-	default marvell/acorn
+	default marvell/cyclone
 
 config MAINBOARD_PART_NUMBER
 	string
-	default "Acorn"
+	default "Cyclone"
 
 config DRAM_DMA_START
 	hex
@@ -52,4 +52,4 @@ config FLASHMAP_OFFSET
 	hex
 	default 0x00100000
 
-endif # BOARD_MARVELL_ACORN
+endif # BOARD_MARVELL_CYCLONE
