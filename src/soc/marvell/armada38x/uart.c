@@ -52,7 +52,7 @@ static int armada38x_uart_tst_byte(void);
 static void armada38x_uart_init(void)
 {
 	/* Use hard coded divisor. 108 for tclk 200mhz and 135 for tclk 250mhz */
-	const unsigned divisor = 108; /*135*/
+	const unsigned divisor = 135;//108; /*135*/
 	const uint8_t line_config = UART8250_LCR_WLS_8; // 8n1
 	armada38x_uart_tx_flush();
 	/* Disable interrupts. */
