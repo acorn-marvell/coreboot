@@ -26,6 +26,8 @@
 #include <console/console.h>
 #include <delay.h>
 
+#if 0
+//hcc
 #define A38x_CUSTOMER_BOARD_0_MPP0_7            0x00111111
 #define A38x_CUSTOMER_BOARD_0_MPP8_15           0x00600000
 #define A38x_CUSTOMER_BOARD_0_MPP16_23          0x11266005
@@ -34,8 +36,17 @@
 #define A38x_CUSTOMER_BOARD_0_MPP40_47          0x00000022
 #define A38x_CUSTOMER_BOARD_0_MPP48_55          0x55550555
 #define A38x_CUSTOMER_BOARD_0_MPP56_63          0x00005550
-
-
+#else
+//cube
+#define A38x_CUSTOMER_BOARD_0_MPP0_7        0x00011111    
+#define A38x_CUSTOMER_BOARD_0_MPP8_15       0x46210050
+#define A38x_CUSTOMER_BOARD_0_MPP16_23      0x55000444
+#define A38x_CUSTOMER_BOARD_0_MPP24_31      0x05053350
+#define A38x_CUSTOMER_BOARD_0_MPP32_39      0x25255555
+#define A38x_CUSTOMER_BOARD_0_MPP40_47      0x00004565
+#define A38x_CUSTOMER_BOARD_0_MPP48_55      0x00444444
+#define A38x_CUSTOMER_BOARD_0_MPP56_63      0x00004444
+#endif
 
 static void setup_pinmux(void)
 {
