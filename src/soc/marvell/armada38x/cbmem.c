@@ -21,5 +21,5 @@
 
 void *cbmem_top(void)
 {
-	return (void *)((1000) << 20UL);
+	return (void *)((512) << 20UL);
 }

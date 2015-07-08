@@ -46,8 +46,8 @@ config BOOTBLOCK_BASE
 
 config ROMSTAGE_BASE
 	hex
-	default 0x2002d000 if VBOOT2_VERIFY_FIRMWARE
-	default 0x2002c000
+	default 0x1002d000 if VBOOT2_VERIFY_FIRMWARE
+	default 0x1002c000
 
 config RAMSTAGE_BASE
 	hex
@@ -55,11 +55,11 @@ config RAMSTAGE_BASE
 
 config STACK_TOP
 	hex
-	default 0x20020000
+	default 0x10020000
 
 config STACK_BOTTOM
 	hex
-	default 0x2001c000
+	default 0x1001c000
 
 # This is the ramstage thread stack, *not* the same as above! Currently unused.
 config STACK_SIZE
@@ -68,11 +68,11 @@ config STACK_SIZE
 
 config TTB_BUFFER
 	hex "memory address of the TTB buffer"
-	default 0x20000000
+	default 0x10000000
 
 config CBFS_CACHE_ADDRESS
 	hex "memory address to put CBFS cache data"
-	default 0x20006000
+	default 0x10006000
 
 config CBFS_CACHE_SIZE
 	hex "size of CBFS cache data"
@@ -80,7 +80,7 @@ config CBFS_CACHE_SIZE
 
 config VBOOT_WORK_BUFFER_ADDRESS
 	hex "memory address of vboot work buffer"
-	default 0x20018000
+	default 0x10018000
 
 config VBOOT_WORK_BUFFER_SIZE
 	hex "size of vboot work buffer"
@@ -88,7 +88,7 @@ config VBOOT_WORK_BUFFER_SIZE
 
 config CBMEM_CONSOLE_PRERAM_BASE
 	hex "memory address of the CBMEM console buffer"
-	default 0x20004020
+	default 0x10004020
 
 choice CONSOLE_SERIAL_ARMADA38X_UART_CHOICES
 	prompt "Serial Console UART"
