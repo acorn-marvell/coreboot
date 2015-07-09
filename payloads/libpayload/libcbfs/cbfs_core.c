@@ -137,8 +137,8 @@ static int get_cbfs_range(uint32_t *offset, uint32_t *cbfs_end,
 /* public API starts here*/
 struct cbfs_file *cbfs_get_file(struct cbfs_media *media, const char *name)
 {
-	const char *file_name;
-	uint32_t offset, cbfs_end, name_len;
+	const char *vardata;
+	uint32_t offset, cbfs_end, vardata_len;
 	struct cbfs_file file, *file_ptr;
 	struct cbfs_media default_media;
 
@@ -173,29 +173,29 @@ struct cbfs_file *cbfs_get_file(struct cbfs_media *media, const char *name)
 			offset += new_align;
 			continue;
 		}
-		name_len = ntohl(file.offset) - sizeof(file);
-		DEBUG(" - load entry 0x%x file name (%d bytes)...\n", offset,
-		      name_len);
+		vardata_len = ntohl(file.offset) - sizeof(file);
+		DEBUG(" - load entry 0x%x variable data (%d bytes)...\n",
+			offset, vardata_len);
 
 		// load file name (arbitrary length).
-		file_name = (const char*)media->map(
-				media, offset + sizeof(file), name_len);
-		if (file_name == CBFS_MEDIA_INVALID_MAP_ADDRESS) {
+		vardata = (const char*)media->map(
+				media, offset + sizeof(file), vardata_len);
+		if (vardata == CBFS_MEDIA_INVALID_MAP_ADDRESS) {
 			ERROR("ERROR: Failed to get filename: 0x%x.\n", offset);
-		} else if (strcmp(file_name, name) == 0) {
+		} else if (strcmp(vardata, name) == 0) {
 			int file_offset = ntohl(file.offset),
 			    file_len = ntohl(file.len);
 			DEBUG("Found file (offset=0x%x, len=%d).\n",
 			    offset + file_offset, file_len);
-			media->unmap(media, file_name);
+			media->unmap(media, vardata);
 			file_ptr = media->map(media, offset,
 					      file_offset + file_len);
 			media->close(media);
 			return file_ptr;
 		} else {
 			DEBUG(" (unmatched file @0x%x: %s)\n", offset,
-			      file_name);
-			media->unmap(media, file_name);
+			      vardata);
+			media->unmap(media, vardata);
 		}
 
 		// Move to next file.
