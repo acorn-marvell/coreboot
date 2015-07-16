@@ -21,12 +21,12 @@ if BOARD_MARVELL_CYCLONE
 
 config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
-	select CHROMEOS
-	select EC_SOFTWARE_SYNC
-	select SOC_MARVELL_ARMADA38X
-	select MAINBOARD_HAS_BOOTBLOCK_INIT
-	select SPI_FLASH
-	select VIRTUAL_DEV_SWITCH
+        select BOARD_ROMSIZE_KB_128
+        select CHROMEOS
+        select MAINBOARD_HAS_BOOTBLOCK_INIT
+        select SOC_MARVELL_ARMADA38X
+        select VIRTUAL_DEV_SWITCH
+
 
 config MAINBOARD_DIR
 	string
@@ -36,20 +36,16 @@ config MAINBOARD_PART_NUMBER
 	string
 	default "Cyclone"
 
-config DRAM_DMA_START
-	hex
-	default 0x00000000
+config DRAM_SIZE_MB
+        int
+        default 512
 
-config DRAM_DMA_SIZE
-	hex
-	default 0x40000000
+config DRIVER_TPM_I2C_BUS
+        hex
+        default 0x1
 
-config VBOOT_RAMSTAGE_INDEX
-	hex
-	default 0x2
-
-config FLASHMAP_OFFSET
-	hex
-	default 0x00100000
+config DRIVER_TPM_I2C_ADDR
+        hex
+        default 0x20
 
 endif # BOARD_MARVELL_CYCLONE
