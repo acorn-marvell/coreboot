@@ -32,3 +32,4 @@ ramstage-y += memlayout.ld
 ramstage-y += reset.c
 
 verstage-y += reset.c
+verstage-y += memlayout.ld
