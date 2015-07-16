@@ -20,10 +20,15 @@
 bootblock-y += boardid.c
 bootblock-y += bootblock.c
 bootblock-y += memlayout.ld
+bootblock-y += reset.c
 
 romstage-y += romstage.c
 romstage-y += memlayout.ld
+romstage-y += reset.c
 
 ramstage-y += boardid.c
 ramstage-y += mainboard.c
 ramstage-y += memlayout.ld
+ramstage-y += reset.c
+
+verstage-y += reset.c
