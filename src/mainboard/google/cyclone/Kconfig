@@ -1,7 +1,7 @@
 ##
 ## This file is part of the coreboot project.
 ##
-## Copyright (C) 2015 The ChromiumOS Authors
+## Copyright 2015 Marvell ltd.
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -16,25 +16,36 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 ##
-if VENDOR_MARVELL
 
-# Auto select common options
-config VENDOR_SPECIFIC_OPTIONS
+if BOARD_GOOGLE_CYCLONE
+
+config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
-	select CACHE_ROM
+        select BOARD_ROMSIZE_KB_128
+        select CHROMEOS
+        select MAINBOARD_HAS_BOOTBLOCK_INIT
+        select SOC_MARVELL_ARMADA38X
+        select VIRTUAL_DEV_SWITCH
 
-choice
-	prompt "Mainboard model"
 
-config BOARD_MARVELL_CYCLONE
-	bool "Cyclone"
+config MAINBOARD_DIR
+	string
+	default google/cyclone
 
-endchoice
+config MAINBOARD_PART_NUMBER
+	string
+	default "Cyclone"
 
-source "src/mainboard/marvell/cyclone/Kconfig"
+config DRAM_SIZE_MB
+        int
+        default 512
 
-config MAINBOARD_VENDOR
-	string "Mainboard Vendor"
-	default "MARVELL"
+config DRIVER_TPM_I2C_BUS
+        hex
+        default 0x1
 
-endif # VENDOR_MARVELL
+config DRIVER_TPM_I2C_ADDR
+        hex
+        default 0x20
+
+endif # BOARD_MARVELL_CYCLONE
