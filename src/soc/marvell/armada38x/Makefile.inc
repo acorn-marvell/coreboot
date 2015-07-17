@@ -8,6 +8,7 @@ ifeq ($(CONFIG_BOOTBLOCK_CONSOLE),y)
 bootblock-$(CONFIG_CONSOLE_SERIAL_UART) += uart.c
 endif
 
+verstage-y += uart.c
 verstage-y += verstage.c
 verstage-y += cbfs.c
 verstage-y += monotonic_timer.c
