@@ -22,6 +22,9 @@
 #include <delay.h>
 #include <thread.h>
 
+unsigned int timer_raw_value(void);
+static inline void _delay(unsigned int delta);
+
 void init_timer(void)
 {
 	unsigned int reg;
@@ -35,4 +38,33 @@ void init_timer(void)
 	* (volatile unsigned int *)0xf1020300 = reg;
 }
 
+unsigned int timer_raw_value(void)
+{
+        return *(volatile unsigned int *)0xF1020314;
+}
+
+static inline void _delay(unsigned int delta)
+{
+        unsigned int now = 0;
+        unsigned int change;
+        unsigned int last = timer_raw_value();
+        while (delta) {
+                now = timer_raw_value();
+                if (last >= now)
+                        change = (last - now);
+                else
+                        change = last + (0xffffffff - now);
+
+                if (change < delta)
+                        delta -= change;
+                else
+                        break;
+                last = now;
+        }
+}
+
+void udelay(unsigned int n)
+{
+        _delay((unsigned int)n * 25);
+}
 
