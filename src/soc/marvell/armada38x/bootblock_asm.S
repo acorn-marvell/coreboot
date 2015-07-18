@@ -31,14 +31,24 @@
 
 #include <arch/asm.h>
 
+.arm
+	/*
+	 * Just in case the maskrom or the vendor basic firmware passes on a
+	 * parameter when calling the bootblock, store it here for handling by C
+	 * code.
+	 */
+	.section .bss, "aw" @nobits
+	.global maskrom_param
+maskrom_param:
+	.word 0
+
 ENTRY(_start)
-	
 	/* Disable L2 Cache */
         ldr r1, =0x0
         ldr r0, =0xD0008100
         str r1, [r0]
 
-	/* Disable windows that overlap with 0xF1000000 */
+        /* Disable windows that overlap with 0xF1000000 */
         /* By default, window #12 overlaps with 0xF1000000 */
         mov  r1, #0
         ldr  r0, =0xD00200B0
@@ -47,10 +57,11 @@ ENTRY(_start)
         ldr  r1, =0xf1000000
         ldr  r0, =0xD0020080
         str  r1, [r0]
-	 /* Update SCU (peripheral) register Base address with correct INTER_REG_BASE */
+         /* Update SCU (peripheral) register Base address with correct INTER_REG_BASE */
         ldr r2, = 0xC000                /* SCU offset = 0xC000 */
         add r1, r1, r2                  /* r1 = INTER_REG_BASE + SCU_OFFSET */
         mcr p15, 4, r1, c15, c0, 0      /* Write SCU base register */
+
 	/*
 	 * Set the cpu to System mode with IRQ and FIQ disabled. Prefetch/Data
 	 * aborts may happen early and crash before the abort handlers are
@@ -58,44 +69,64 @@ ENTRY(_start)
 	 * causes it.
 	 */
 	msr	cpsr_cxf, #0xdf
+	bl	_thumb_start
+ENDPROC(_start)
+
+.thumb
+ENTRY(_thumb_start)
+
+	/* Preserve the maskrom passed value, if any */
+	mov	r10, r0
+
+	bl	arm_init_caches
+
+	/*
+	 * From Cortex-A Series Programmer's Guide:
+	 * Only CPU 0 performs initialization. Other CPUs go into WFI
+	 * to do this, first work out which CPU this is
+	 * this code typically is run before any other initialization step
+	 */
+	mrc p15, 0, r1, c0, c0, 5	@ Read Multiprocessor Affinity Register
+	and r1, r1, #0x3 @ Extract CPU ID bits
+	cmp r1, #0
+	bne wait_for_interrupt		@ If this is not core0, wait
 
 	bl      cpu_init_cp15
         bl      cpu_init_crit
-
 	/*
 	 * Initialize the stack to a known value. This is used to check for
 	 * stack overflow later in the boot process.
 	 */
-	ldr     r0, =_stack
-        ldr     r1, =_estack
-        ldr     r2, =0xdeadbeef
+	ldr	r0, =_stack
+	ldr	r1, =_estack
+	ldr	r2, =0xdeadbeef
 init_stack_loop:
-        str     r2, [r0]
-        add     r0, #4
-        cmp     r0, r1
-        bne     init_stack_loop
+	str	r2, [r0]
+	add	r0, #4
+	cmp	r0, r1
+	bne	init_stack_loop
 
-/* Set stackpointer in internal RAM to call bootblock main() */
 call_bootblock:
-	ldr	sp, =_estack /* Set up stack pointer */
+
+	/* Restore parameter passed in by maskrom/vendor firmware. */
+	ldr	r0, =maskrom_param
+	str	r10, [r0]
+
+	/* Set stackpointer in internal RAM to call bootblock main() */
+	ldr	sp, =_estack
 	ldr	r0,=0x00000000
 	 /*
-	  * The current design of cpu_info places the
-	  * struct at the top of the stack. The number of
-	  * words pushed must be at least as large as that
-	  * struct.
+	  * The current design of cpu_info places the struct at the top of the
+	  * stack. Free enough space to accomodate for that, but make sure it's
+	  * 8-byte aligned for ABI compliance.
 	  */
-	push	{r0-r2}
-	bic	sp, sp, #7 /* 8-byte alignment for ABI compliance */
-	/*
-	 * Use "bl" instead of "b" even though we do not intend to return.
-	 * "bl" gets compiled to "blx" if we're transitioning from ARM to
-	 * Thumb. However, "b" will not and GCC may attempt to create a
-	 * wrapper which is currently broken.
-	 */
+	sub	sp, sp, #16
 	bl	main
-ENDPROC(_start)
 
+wait_for_interrupt:
+	wfi
+	mov	pc, lr			@ back to my caller
+ENDPROC(_thumb_start)
 
 ENTRY(cpu_init_cp15)
         /*
@@ -122,11 +153,11 @@ ENTRY(cpu_init_cp15)
 ENDPROC(cpu_init_cp15)
 
 ENTRY(cpu_init_crit)
-	mov     r2, lr
+        mov     r2, lr
 
         /* Multicore support - read MPIDR register (Multiprocessor Affinity) */
         mrc     p15, 0, r0, c0, c0, 5
 
-	mov     lr, r2
+        mov     lr, r2
         mov     pc, lr
 ENDPROC(cpu_init_crit)
