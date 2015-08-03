@@ -25,6 +25,9 @@
 #include <cbfs.h>
 #include <console/console.h>
 #include <delay.h>
+#include <arch/stages.h>
+#include <symbols.h>
+#include <vendorcode/google/chromeos/chromeos.h>
 
 #if 0
 //hcc
@@ -48,6 +51,12 @@
 #define A38x_CUSTOMER_BOARD_0_MPP56_63      0x00004444
 #endif
 
+#define DRAM_START          ((uintptr_t)_dram / MiB)
+#define DRAM_SIZE           (CONFIG_DRAM_SIZE_MB)
+/* DMA memory for drivers */
+#define DMA_START            ((uintptr_t)_dma_coherent / MiB)
+#define DMA_SIZE             (_dma_coherent_size / MiB)
+
 static void setup_pinmux(void)
 {
 	/* Hard coded pin mux configuration */
@@ -61,8 +70,6 @@ static void setup_pinmux(void)
 	* (volatile unsigned int *) 0xf101801c = A38x_CUSTOMER_BOARD_0_MPP56_63;
 }
 
-#include <vendorcode/google/chromeos/chromeos.h>
-
 void main(void)
 {
 	volatile unsigned int reg;
@@ -75,6 +82,13 @@ void main(void)
 	}
 	init_timer();
 
+	//enable mmu
+	mmu_init();
+	mmu_config_range(0, 4096, DCACHE_OFF);
+	mmu_config_range(DRAM_START, DRAM_SIZE, DCACHE_WRITEBACK); 
+	mmu_config_range(DMA_START, DMA_SIZE, DCACHE_OFF);
+	dcache_mmu_enable();
+	
 	bootblock_mainboard_init();
 
 	setup_pinmux(); /* This was previously under CONFIG_VBOTT2_VERIFY_FIRMWARE below */

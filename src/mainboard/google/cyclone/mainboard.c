@@ -18,6 +18,7 @@
  */
 
 #include <arch/io.h>
+#include <symbols.h>
 #include <device/device.h>
 #include <elog.h>
 #include <boot/coreboot_tables.h>
@@ -53,4 +54,12 @@ struct chip_operations mainboard_ops = {
 
 void lb_board(struct lb_header *header)
 {
+        struct lb_range *dma;
+
+        dma = (struct lb_range *)lb_new_record(header);
+        dma->tag = LB_TAB_DMA;
+        dma->size = sizeof(*dma);
+        dma->range_start = (uintptr_t)_dma_coherent;
+        dma->range_size = _dma_coherent_size;
+
 }
