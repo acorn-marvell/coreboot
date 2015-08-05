@@ -93,13 +93,23 @@ void main(void)
 
 	setup_pinmux(); /* This was previously under CONFIG_VBOTT2_VERIFY_FIRMWARE below */
 
-	if (IS_ENABLED(CONFIG_VBOOT2_VERIFY_FIRMWARE))
-		entry = cbfs_load_stage(CBFS_DEFAULT_MEDIA,
-					CONFIG_CBFS_PREFIX "/verstage");
-	else
+	cbfs_set_header_offset(0);
+	if (IS_ENABLED(CONFIG_VBOOT2_VERIFY_FIRMWARE)) {
+		if (IS_ENABLED(CONFIG_RETURN_FROM_VERSTAGE)) {
+			entry = vboot2_verify_firmware();
+			printk(BIOS_ERR, "vboot2 \n");
+		} else {
+			entry = cbfs_load_stage(CBFS_DEFAULT_MEDIA,
+						CONFIG_CBFS_PREFIX "/verstage");
+			printk(BIOS_ERR, "verstage\n");
+		}
+	} else {
 		entry = cbfs_load_stage(CBFS_DEFAULT_MEDIA,
 					CONFIG_CBFS_PREFIX "/romstage");
-
-	ASSERT(entry);
-	entry();
+			printk(BIOS_ERR, "romstage\n");
+	}
+	printk(BIOS_ERR, "armada bootstage exit %p\n", entry);
+	if (entry != (void *)-1)
+		stage_exit(entry);
+	hlt();
 }

@@ -13,6 +13,7 @@ verstage-y += monotonic_timer.c
 verstage-y += timer.c
 verstage-y += spi.c
 
+romstage-y += uart.c
 romstage-y += spi.c
 romstage-y += cbmem.c
 romstage-y += monotonic_timer.c
@@ -21,6 +22,7 @@ ifeq ($(CONFIG_EARLY_CONSOLE),y)
 romstage-$(CONFIG_CONSOLE_SERIAL_UART) += uart.c
 endif
 
+ramstage-y += uart.c
 ramstage-y += spi.c
 ramstage-y += cbmem.c
 ramstage-y += maincpu.S
