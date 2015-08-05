@@ -28,32 +28,29 @@
 #include <console/console.h>
 #include <romstage_handoff.h>
 #include <timestamp.h>
+# include <lib.h>
+#include <vendorcode/google/chromeos/chromeos.h>
 
-static void __attribute__((noinline)) romstage(void)
+void main(void)
 {
-	uint64_t romstage_start_time = timestamp_get();
+	void *entry;
+
 	console_init();
 	exception_init();
 
 	cbmem_initialize_empty();
 
-	timestamp_init(0);
-	timestamp_add(TS_START_ROMSTAGE, romstage_start_time);
+	entry = vboot2_load_ramstage();
 
-#if CONFIG_CONSOLE_CBMEM
-	cbmemc_reinit();
-#endif
-
-        timestamp_add(TS_START_COPYRAM, timestamp_get());
-        void *entry = cbfs_load_stage(CBFS_DEFAULT_MEDIA,
-                                      "fallback/ramstage");
-        timestamp_add(TS_END_COPYRAM, timestamp_get());
+	printk(BIOS_ERR, "cyclone enter ram stage\n");
+	/*
+	 * Presumably the only reason vboot2 would return NULL is that we're
+	 * running in recovgery mode, otherwise it would have reset the
+	 * device.
+	 */
+	if (!entry)
+		entry = cbfs_load_stage(CBFS_DEFAULT_MEDIA,
+					CONFIG_CBFS_PREFIX "/ramstage");
 
 	stage_exit(entry);
-}
-
-/* Stub to force arm_init_caches to the top, before any stack/memory accesses */
-void main(void)
-{
-	romstage();
 }
