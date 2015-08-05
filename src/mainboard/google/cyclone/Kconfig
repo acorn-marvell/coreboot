@@ -21,7 +21,7 @@ if BOARD_GOOGLE_CYCLONE
 
 config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
-        select BOARD_ROMSIZE_KB_256
+        select BOARD_ROMSIZE_KB_8192
         select CHROMEOS
 	select HAVE_HARD_RESET
         select MAINBOARD_HAS_BOOTBLOCK_INIT
@@ -31,7 +31,8 @@ config BOARD_SPECIFIC_OPTIONS # dummy
 	select COMMON_CBFS_SPI_WRAPPER
 	select SPI_FLASH
 	select SPI_FLASH_WINBOND
-
+	select BOARD_ID_AUTO
+	select RETURN_FROM_VERSTAGE
 
 config MAINBOARD_DIR
 	string
