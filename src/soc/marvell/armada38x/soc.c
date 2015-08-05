@@ -23,14 +23,12 @@
 #include <console/console.h>
 #include <device/device.h>
 #include <vendorcode/google/chromeos/chromeos.h>
-
+#include <symbols.h>
 #include "chip.h"
 
 static void soc_enable(device_t dev)
 {
-	ram_resource(dev, 0, CONFIG_SYS_SDRAM_BASE/KiB,
-		(1024)*KiB -
-		CONFIG_SYS_SDRAM_BASE/KiB);
+	ram_resource(dev, 0, (uintptr_t)_dram/KiB, (CONFIG_DRAM_SIZE_MB * KiB));
 }
 
 static void soc_init(device_t dev)

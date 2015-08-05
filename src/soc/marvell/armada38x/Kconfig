@@ -22,10 +22,6 @@ config BOOTBLOCK_CPU_INIT
 	  bootblock must load microcode or copy data from ROM before
 	  searching for the bootblock.
 
-config BOOTBLOCK_BASE
-	hex
-	default 0x00000000
-
 config CONSOLE_SERIAL_UART_ADDRESS
 	hex
 	depends on CONSOLE_SERIAL_UART

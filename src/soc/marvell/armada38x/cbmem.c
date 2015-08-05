@@ -19,7 +19,9 @@
 
 #include <cbmem.h>
 
+extern u8 _memlayout_cbmem_top[];
+
 void *cbmem_top(void)
 {
-	return (void *)((512) << 20UL);
+	return (void *)_memlayout_cbmem_top;
 }
