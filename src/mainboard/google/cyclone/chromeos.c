@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <gpio.h>
 #include <boot/coreboot_tables.h>
 #include <console/console.h>
 #include <ec/google/chromeec/ec.h>
@@ -24,9 +25,57 @@
 #include <string.h>
 #include <vendorcode/google/chromeos/chromeos.h>
 
+#define FAKE_GPIO_NUM           -1
+
+struct gpio_desc {
+        gpio_t gpio_num;
+        const char *gpio_name;
+        uint32_t fake_value;
+        int last_reported;
+};
+
+/* Actual GPIO switch names */
+#define DEVELOPER_GPIO_NAME     "developer"
+#define RECOVERY_GPIO_NAME      "recovery"
+
+static struct gpio_desc descriptors[] = {
+        { 5, DEVELOPER_GPIO_NAME },
+        { 11, RECOVERY_GPIO_NAME },
+        { FAKE_GPIO_NUM, "write protect", 1},
+        { FAKE_GPIO_NUM, "power", 1 },  /* Power never pressed. */
+        { FAKE_GPIO_NUM, "lid", 0 }     /* Lid always open. */
+};
+
+static void fill_lb_gpio(struct lb_gpio *pgpio, struct gpio_desc *pdesc)
+{
+        gpio_t gpio_num = pdesc->gpio_num;
+
+        pgpio->port = gpio_num;
+        if (gpio_num == FAKE_GPIO_NUM) {
+                pgpio->value = pdesc->fake_value;
+        } else {
+                pgpio->value = gpio_get(gpio_num);
+        }
+        pgpio->polarity = ACTIVE_LOW;
+        strncpy((char *)pgpio->name, pdesc->gpio_name, sizeof(pgpio->name));
+
+        if (pdesc->last_reported != (pgpio->value + 1)) {
+                pdesc->last_reported = (pgpio->value + 1);
+                printk(BIOS_INFO, "%s: %s: port %d value %d\n",
+                       __func__, pgpio->name, pgpio->port, pgpio->value);
+        }
+}
+
 void fill_lb_gpios(struct lb_gpios *gpios)
 {
-	/* TODO */
+	int i;
+
+        for (i = 0; i < ARRAY_SIZE(descriptors); i++)
+                fill_lb_gpio(gpios->gpios + i, descriptors + i);
+
+
+        gpios->size = sizeof(*gpios) + sizeof(struct lb_gpio) * i;
+        gpios->count = i;
 }
 
 int get_developer_mode_switch(void)

@@ -1,6 +1,7 @@
 bootblock-y += bootblock.c
 bootblock-y += bootblock_asm.S
 bootblock-y += spi.c
+bootblock-y += gpio.c
 bootblock-y += maincpu.S
 bootblock-y += monotonic_timer.c
 bootblock-y += timer.c
@@ -12,9 +13,11 @@ verstage-y += uart.c
 verstage-y += monotonic_timer.c
 verstage-y += timer.c
 verstage-y += spi.c
+verstage-y += gpio.c
 
 romstage-y += uart.c
 romstage-y += spi.c
+romstage-y += gpio.c
 romstage-y += cbmem.c
 romstage-y += monotonic_timer.c
 romstage-y += timer.c
@@ -24,6 +27,7 @@ endif
 
 ramstage-y += uart.c
 ramstage-y += spi.c
+ramstage-y += gpio.c
 ramstage-y += cbmem.c
 ramstage-y += maincpu.S
 ramstage-y += monotonic_timer.c
