@@ -80,6 +80,11 @@ void main(void)
 		console_init();
 		exception_init();
 	}
+
+	* (volatile unsigned int *) 0xf1020250 = 0x1ff00001;
+	* (volatile unsigned int *) 0xf1020254 = 0xe0000000;
+	* (volatile unsigned int *) 0xf1020200 = 0x00000000;
+
 	init_timer();
 
 	//enable mmu
