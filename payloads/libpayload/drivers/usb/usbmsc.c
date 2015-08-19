@@ -252,7 +252,9 @@ execute_command (usbdev_t *dev, cbw_direction dir, const u8 *cb, int cblen,
 			    bulk (MSC_INST (dev)->bulk_out, buflen, buf, 0) < 0)
 				clear_stall (MSC_INST (dev)->bulk_out);
 		}
+		udelay(10);
 	}
+
 	int ret = get_csw (MSC_INST (dev)->bulk_in, &csw);
 	if (ret) {
 		return ret;
