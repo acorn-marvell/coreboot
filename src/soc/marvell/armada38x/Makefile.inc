@@ -14,6 +14,7 @@ verstage-y += monotonic_timer.c
 verstage-y += timer.c
 verstage-y += spi.c
 verstage-y += gpio.c
+verstage-y += i2c.c
 
 romstage-y += uart.c
 romstage-y += spi.c
