@@ -27,4 +27,8 @@ config CONSOLE_SERIAL_UART_ADDRESS
 	depends on CONSOLE_SERIAL_UART
         default 0xf1012000
 
+config MRVL_SPI_COREBOOT_OFFSET
+        hex
+        default 0x16000
+
 endif

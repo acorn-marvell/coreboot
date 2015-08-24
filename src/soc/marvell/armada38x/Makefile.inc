@@ -64,7 +64,7 @@ bootable: coreboot
 	echo "Generating SPI bootable image"
 	rm -rf $(CB_SPI)
 	dd if=$(obj)/coreboot.rom of=$(CB_640K) bs=1024 count=2000 conv=notrunc
-	$(DOIMAGE) -T flash -D 0 -E 0 -G $(BIN_HDR) $(CB_640K) $(CB_SPI)
+	$(DOIMAGE) -T flash -D 0 -E 0 -S $(CONFIG_MRVL_SPI_COREBOOT_OFFSET) -G $(BIN_HDR) $(CB_640K) $(CB_SPI)
 	echo "Generating coreboot.spi.tmp.rom"
 	cp $(obj)/coreboot.rom $(CB_TMP)
 	cp $(obj)/coreboot.rom $(CB_SPI_8M)
@@ -82,5 +82,5 @@ bootable: coreboot
 	echo "Generating UART+KERNEL bootable image"
 	rm -rf $(CB_UART_PLUS_KERNEL) $(CB_UIMAGE) $(CB_UIMAGE_SPI)
 	cat $(obj)/coreboot.rom $(UIMAGE) > $(CB_UIMAGE)
-	$(DOIMAGE) -T flash -D 0 -E 0 -G $(BIN_HDR) $(CB_UIMAGE) $(CB_UIMAGE_SPI)
+	$(DOIMAGE) -T flash -D 0 -E 0 -S $(CONFIG_MRVL_SPI_COREBOOT_OFFSET) -G $(BIN_HDR) $(CB_UIMAGE) $(CB_UIMAGE_SPI)
 	$(DOIMAGE) -T uart -D 0 -E 0 -s $(CB_UIMAGE_SPI) -G $(BIN_HDR_UART) $(UBOOT) $(CB_UART_PLUS_KERNEL)

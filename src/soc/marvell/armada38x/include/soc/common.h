@@ -9,6 +9,13 @@
         (read32((void *)(INTER_REGS_BASE | (offset))))
 #define MV_REG_WRITE(offset, val)    \
         (write32((void *)(INTER_REGS_BASE | (offset)), (val)))
+#define MV_REG_BIT_SET(offset, bitMask)                 \
+        (write32((void *)(INTER_REGS_BASE | (offset)), \
+         (read32((void *)(INTER_REGS_BASE | (offset))) | bitMask)))
+#define MV_REG_BIT_RESET(offset,bitMask)                \
+        (write32((void *)(INTER_REGS_BASE | (offset)), \
+         (read32((void *)(INTER_REGS_BASE | (offset))) & (~bitMask))))
+
 
 #define NO_BIT      0x00000000
 #define BIT0        0x00000001
@@ -80,4 +87,5 @@
 
 #define MPP_SAMPLE_AT_RESET     (0x18600)
 
+#define MV_6810_DEV_ID          0x6810
 #endif // __SOC_MARVELL_ARMADA38X_COMMON_H__
