@@ -308,8 +308,7 @@ static int cbfstool_convert_mkstage(struct buffer *buffer, uint32_t *offset,
 	buffer_delete(buffer);
 	// direct assign, no dupe.
 	memcpy(buffer, &output, sizeof(*buffer));
-	if (header)
-		header->len = htonl(output.size);
+	header->len = htonl(output.size);
 	return 0;
 }
 
@@ -340,8 +339,7 @@ static int cbfstool_convert_mkpayload(struct buffer *buffer,
 	buffer_delete(buffer);
 	// direct assign, no dupe.
 	memcpy(buffer, &output, sizeof(*buffer));
-	if (header)
-		header->len = htonl(output.size);
+	header->len = htonl(output.size);
 	return 0;
 }
 
@@ -358,8 +356,7 @@ static int cbfstool_convert_mkflatpayload(struct buffer *buffer,
 	buffer_delete(buffer);
 	// direct assign, no dupe.
 	memcpy(buffer, &output, sizeof(*buffer));
-	if (header)
-		header->len = htonl(output.size);
+	header->len = htonl(output.size);
 	return 0;
 }
 
