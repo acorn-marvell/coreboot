@@ -45,42 +45,11 @@ $(objcbfs)/bootblock.raw.elf: $(objcbfs)/bootblock.elf
 	cp $< $@
 
 BIN_HDR = $(src)/soc/marvell/armada38x/bin_header/bin_hdr.bin
-BIN_HDR_UART = $(src)/soc/marvell/armada38x/bin_header/bin_hdr.uart.bin
 CB_SPI = $(obj)/generated/coreboot.spi.rom
-CB_640K = $(obj)/generated/coreboot_640K.rom
-CB_SPI_8M = $(obj)/generated/coreboot_8M.spi.rom
-CB_TMP = $(obj)/generated/coreboot.rom.tmp
-CB_NAND = $(obj)/generated/coreboot.nand.rom
-CB_UART = $(obj)/generated/coreboot.uart.rom
-CB_UART_PLUS = $(obj)/generated/coreboot.uart.plus.rom
-CB_UART_PLUS_KERNEL = $(obj)/generated/coreboot.uart.plus.kernel.rom
-CB_UIMAGE = $(obj)/generated/coreboot_uimage
-CB_UIMAGE_SPI = $(obj)/generated/coreboot_uimage.spi.rom
+CB_2M = $(obj)/generated/coreboot_2M.rom
 DOIMAGE = $(src)/soc/marvell/armada38x/bin_header/doimage
-#UIMAGE = $(src)/soc/marvell/armada38x/bin_header/uImage.armada
-UIMAGE = $(src)/../cyclone-vmlinux.uimg
-UBOOT = $(src)/soc/marvell/armada38x/bin_header/u-boot.bin
 bootable: coreboot
 	echo "Generating SPI bootable image"
 	rm -rf $(CB_SPI)
-	dd if=$(obj)/coreboot.rom of=$(CB_640K) bs=1024 count=2000 conv=notrunc
-	$(DOIMAGE) -T flash -D 0 -E 0 -S $(CONFIG_MRVL_SPI_COREBOOT_OFFSET) -G $(BIN_HDR) $(CB_640K) $(CB_SPI)
-	echo "Generating coreboot.spi.tmp.rom"
-	cp $(obj)/coreboot.rom $(CB_TMP)
-	cp $(obj)/coreboot.rom $(CB_SPI_8M)
-	dd if=$(CB_SPI) of=$(CB_SPI_8M) conv=notrunc
-
-	echo "Generating NAND bootable image"
-	rm -rf $(CB_NAND)
-	$(DOIMAGE) -T nand -D 0 -E 0 -P 4096 -L 128 -N MLC -G $(BIN_HDR) $(obj)/coreboot.rom $(CB_NAND)
-	echo "Generating UART bootable image"
-	rm -rf $(CB_UART)
-	$(DOIMAGE) -T uart -D 0 -E 0 -G $(BIN_HDR_UART) $(obj)/coreboot.rom $(CB_UART)
-	echo "Generating UART+ bootable image"
-	rm -rf $(CB_UART_PLUS)
-	$(DOIMAGE) -T uart -D 0 -E 0 -s $(CB_SPI) -G $(BIN_HDR_UART) $(UBOOT) $(CB_UART_PLUS)
-	echo "Generating UART+KERNEL bootable image"
-	rm -rf $(CB_UART_PLUS_KERNEL) $(CB_UIMAGE) $(CB_UIMAGE_SPI)
-	cat $(obj)/coreboot.rom $(UIMAGE) > $(CB_UIMAGE)
-	$(DOIMAGE) -T flash -D 0 -E 0 -S $(CONFIG_MRVL_SPI_COREBOOT_OFFSET) -G $(BIN_HDR) $(CB_UIMAGE) $(CB_UIMAGE_SPI)
-	$(DOIMAGE) -T uart -D 0 -E 0 -s $(CB_UIMAGE_SPI) -G $(BIN_HDR_UART) $(UBOOT) $(CB_UART_PLUS_KERNEL)
+	dd if=$(obj)/coreboot.rom of=$(CB_2M) bs=1024 count=2000 conv=notrunc
+	$(DOIMAGE) -T flash -D 0 -E 0 -S $(CONFIG_MRVL_SPI_COREBOOT_OFFSET) -G $(BIN_HDR) $(CB_2M) $(CB_SPI)
