@@ -17,12 +17,14 @@
 ## Foundation, Inc.
 ##
 
-if BOARD_GOOGLE_VEYRON_SHARK
+config BOARD_GOOGLE_VEYRON # dummy option to be selected by variant boards
+	def_bool n
+
+if BOARD_GOOGLE_VEYRON
 
 config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
 	select BOARD_ID_AUTO
-	select BOARD_ROMSIZE_KB_4096
 	select CHROMEOS_VBNV_EC
 	select COMMON_CBFS_SPI_WRAPPER
 	select EC_GOOGLE_CHROMEEC
@@ -32,6 +34,7 @@ config BOARD_SPECIFIC_OPTIONS # dummy
 	select SOC_ROCKCHIP_RK3288
 	select MAINBOARD_DO_NATIVE_VGA_INIT
 	select MAINBOARD_HAS_CHROMEOS
+	select BOARD_ROMSIZE_KB_4096
 	select HAVE_HARD_RESET
 	select SPI_FLASH
 	select SPI_FLASH_GIGADEVICE
@@ -40,11 +43,11 @@ config BOARD_SPECIFIC_OPTIONS # dummy
 
 config MAINBOARD_DIR
 	string
-	default google/veyron_shark
+	default google/veyron
 
 config MAINBOARD_PART_NUMBER
 	string
-	default "Veyron_Shark"
+	default "Veyron"
 
 config MAINBOARD_VENDOR
 	string
@@ -79,4 +82,4 @@ config PMIC_BUS
 	int
 	default 0
 
-endif #  BOARD_GOOGLE_VEYRON_SHARK
+endif #  BOARD_GOOGLE_VEYRON
