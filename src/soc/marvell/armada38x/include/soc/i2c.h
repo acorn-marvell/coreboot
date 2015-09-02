@@ -5,6 +5,7 @@
 
 #define TWSI_SPEED                              100000
 
+#define MAX_I2C_NUM                             2
 #define MAX_RETRY_CNT                           1000
 #define TWSI_TIMEOUT_VALUE                      0x500
 

@@ -128,8 +128,10 @@ static int mvTwsiRead(uint8_t chanNum, MV_TWSI_SLAVE *twsiSlave, uint8_t *pBlock
 static int mvTwsiWrite(uint8_t chanNum, MV_TWSI_SLAVE *twsiSlave, uint8_t *pBlock, uint32_t blockSize);
 static uint32_t mvBoardTclkGet(void);
 static uint32_t whoAmI(void);
+static int i2c_init(unsigned bus);
+static void i2c_reset(unsigned bus);
 
-
+static int mInitialized[MAX_I2C_NUM] = {0, 0};
 static uint32_t mvBoardTclkGet(void)
 {         
         uint32_t tclk;
@@ -179,7 +181,7 @@ static uint8_t twsiTimeoutChk(uint32_t timeout, const char *pString)
 *       MV_FAIL if interrupt flag was set before setting start bit.
 *
 *******************************************************************************/
-int mvTwsiStartBitSet(uint8_t chanNum)
+static int mvTwsiStartBitSet(uint8_t chanNum)
 {
 	uint8_t isIntFlag = MV_FALSE;
 	uint32_t timeout, temp;
@@ -246,7 +248,7 @@ int mvTwsiStartBitSet(uint8_t chanNum)
 *       MV_TRUE is stop bit was set successfuly on the bus.
 *
 *******************************************************************************/
-int mvTwsiStopBitSet(uint8_t chanNum)
+static int mvTwsiStopBitSet(uint8_t chanNum)
 {
 	uint32_t timeout, temp;
 
@@ -406,7 +408,7 @@ static void twsiAckBitSet(uint8_t chanNum)
 *       Actual frequancy.
 *
 *******************************************************************************/
-uint32_t mvTwsiInit(uint8_t chanNum, uint32_t frequancy, uint32_t Tclk, MV_TWSI_ADDR *pTwsiAddr, uint8_t generalCallEnable)
+static uint32_t mvTwsiInit(uint8_t chanNum, uint32_t frequancy, uint32_t Tclk, MV_TWSI_ADDR *pTwsiAddr, uint8_t generalCallEnable)
 {
 	uint32_t n, m, freq, margin, minMargin = 0xffffffff;
 	uint32_t power;
@@ -550,7 +552,7 @@ static void twsiReset(uint8_t chanNum)
 *	MV_FAIL otherwmise.
 *
 *******************************************************************************/
-int mvTwsiAddrSet(uint8_t chanNum, MV_TWSI_ADDR *pTwsiAddr, MV_TWSI_CMD command)
+static int mvTwsiAddrSet(uint8_t chanNum, MV_TWSI_ADDR *pTwsiAddr, MV_TWSI_CMD command)
 {
 	DB(mvOsPrintf("TWSI: mvTwsiAddr7BitSet addr %x , type %d, cmd is %s\n", pTwsiAddr->address,
 		      pTwsiAddr->type, ((command == MV_TWSI_WRITE) ? "Write" : "Read")));
@@ -966,7 +968,7 @@ static int twsiTargetOffsSet(uint8_t chanNum, uint32_t offset, uint8_t moreThan2
 *	MV_FAIL otherwmise.
 *
 *******************************************************************************/
-int mvTwsiRead(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pBlock, uint32_t blockSize)
+static int mvTwsiRead(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pBlock, uint32_t blockSize)
 {
 	int rc;
 	int ret = MV_FAIL;
@@ -1091,7 +1093,7 @@ int mvTwsiRead(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pBlock, uint
 * NOTE: Part of the EEPROM, required that the offset will be aligned to the
 *	max write burst supported.
 *******************************************************************************/
-int mvTwsiWrite(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pBlock, uint32_t blockSize)
+static int mvTwsiWrite(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pBlock, uint32_t blockSize)
 {
 	int ret = MV_FAIL;
 	uint32_t counter = 0;
@@ -1162,17 +1164,39 @@ int mvTwsiWrite(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pBlock, uin
 	return MV_OK;
 }
 
+static int i2c_init(unsigned bus)
+{
+	if(bus >= MAX_I2C_NUM){
+		return 1;
+	}
+
+        if(!mInitialized[bus]){
+                /* TWSI init */
+                MV_TWSI_ADDR slave;
+                slave.type = ADDR7_BIT;
+                slave.address = 0;
+                mvTwsiInit(bus, TWSI_SPEED, mvBoardTclkGet(), &slave, 0);
+                mInitialized[bus] = 1;
+        }
+
+	return 0;
+}
+
+static void i2c_reset(unsigned bus)
+{
+	if(bus < MAX_I2C_NUM){
+		mInitialized[bus] = 0;
+        }
+}
+
 int platform_i2c_transfer(unsigned bus, struct i2c_seg *segments, int seg_count)
 {
         struct i2c_seg *seg = segments;
         int ret = 0;
         MV_TWSI_SLAVE twsiSlave;
-        MV_TWSI_ADDR slave;
 
-        /* TWSI init */
-        slave.type = ADDR7_BIT;
-        slave.address = 0;
-        mvTwsiInit(bus, TWSI_SPEED, mvBoardTclkGet(), &slave, 0);
+	if (i2c_init(bus))
+                return 1;
 
         while (!ret && seg_count--) {
                 twsiSlave.slaveAddr.address = seg->chip;
@@ -1180,11 +1204,17 @@ int platform_i2c_transfer(unsigned bus, struct i2c_seg *segments, int seg_count)
                 twsiSlave.moreThan256 = MV_FALSE;
                 twsiSlave.validOffset = MV_FALSE;
                 if (seg->read)
-                        ret = mvTwsiRead(0, &twsiSlave, seg->buf, seg->len);
+                        ret = mvTwsiRead(bus, &twsiSlave, seg->buf, seg->len);
                 else
-                        ret = mvTwsiWrite(0, &twsiSlave, seg->buf, seg->len);
+                        ret = mvTwsiWrite(bus, &twsiSlave, seg->buf, seg->len);
                 seg++;
         }
+
+	if(ret){
+		i2c_reset(bus);
+		DB(mvOsPrintf("mvTwsiRead/mvTwsiWrite failed\n"));
+                return 1;
+	}
 
         return 0;
 }
