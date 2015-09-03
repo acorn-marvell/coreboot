@@ -78,18 +78,32 @@ void fill_lb_gpios(struct lb_gpios *gpios)
         gpios->count = i;
 }
 
+static int get_switch_value(const char *switch_name)
+{
+        int i;
+
+        for (i = 0; i < ARRAY_SIZE(descriptors); i++)
+                if (!strcmp(descriptors[i].gpio_name, switch_name)) {
+                        struct lb_gpio gpio;
+
+                        fill_lb_gpio(&gpio, descriptors + i);
+                        return gpio.value ^ !gpio.polarity;
+                }
+        return -1;
+}
+
 int get_developer_mode_switch(void)
 {
-	return 0;
+	int ret;
+	ret = get_switch_value(DEVELOPER_GPIO_NAME);
+	return ret;
 }
 
 int get_recovery_mode_switch(void)
 {
-	uint32_t ec_events;
-
-	ec_events = google_chromeec_get_events_b();
-	return !!(ec_events &
-		  EC_HOST_EVENT_MASK(EC_HOST_EVENT_KEYBOARD_RECOVERY));
+	int ret;
+	ret = get_switch_value(RECOVERY_GPIO_NAME);
+	return ret;
 }
 
 int get_write_protect_state(void)
