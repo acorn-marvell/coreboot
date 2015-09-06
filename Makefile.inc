@@ -276,6 +276,8 @@ CFLAGS_common += -nostdlib -Wall -Wundef -Wstrict-prototypes -Wmissing-prototype
 CFLAGS_common += -Wwrite-strings -Wredundant-decls -Wno-trigraphs
 CFLAGS_common += -Wstrict-aliasing -Wshadow
 
+LDFLAGS_common := --gc-sections -nostdlib -nostartfiles -static --emit-relocs
+
 ifeq ($(CONFIG_COMPILER_GCC),y)
 # cf. commit f69a99db (coreboot: x86: enable gc-sections)
 CFLAGS_common += -Wno-unused-but-set-variable
