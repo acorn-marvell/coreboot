@@ -26,7 +26,7 @@
 #include <fsp/soc_binding.h>
 #include <fsp/gop.h>
 #include <program_loading.h>
-#include <region.h>
+#include <commonlib/region.h>
 #include <rules.h>
 
 /* cache-as-ram context for FSP 1.1. */
