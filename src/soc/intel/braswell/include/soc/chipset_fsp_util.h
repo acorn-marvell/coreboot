@@ -21,6 +21,13 @@
 #define CHIPSET_FSP_UTIL_H
 
 /*
+ * Intel's code does not have a handle on changing global packing state.
+ * Therefore, one needs to protect against packing policies that are set
+ * globally for a compliation unit just by including a header file.
+ */
+#pragma pack(push)
+
+/*
  * Include the FSP binary interface files
  *
  * These files include the necessary UEFI constants and data structures
@@ -37,5 +44,8 @@
 #include <MdePkg/Include/Pi/PiHob.h>		/* Hand off block definitions */
 #include <MdePkg/Include/Library/HobLib.h>	/* HOB routine declarations */
 #include <FspUpdVpd.h>		/* Vital/updatable product data definitions */
+
+/* Restore original packing policy. */
+#pragma pack(pop)
 
 #endif	/* CHIPSET_FSP_UTIL_H */
