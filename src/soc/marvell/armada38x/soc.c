@@ -26,9 +26,13 @@
 #include <symbols.h>
 #include "chip.h"
 
+#define RESERVED_SIZE_KB        (1*KiB)
+
 static void soc_enable(device_t dev)
 {
-	ram_resource(dev, 0, (uintptr_t)_dram/KiB, (CONFIG_DRAM_SIZE_MB * KiB));
+	/* Reserve bottom 1M bytes for MMU/TTB */
+	reserved_ram_resource(dev, 0, (uintptr_t)(CONFIG_DRAM_SIZE_MB * KiB - RESERVED_SIZE_KB), RESERVED_SIZE_KB);
+	ram_resource(dev, 0, (uintptr_t)_dram / KiB, (CONFIG_DRAM_SIZE_MB * KiB) - RESERVED_SIZE_KB);
 }
 
 static void soc_init(device_t dev)
