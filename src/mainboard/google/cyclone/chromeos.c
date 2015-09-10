@@ -37,11 +37,12 @@ struct gpio_desc {
 /* Actual GPIO switch names */
 #define DEVELOPER_GPIO_NAME     "developer"
 #define RECOVERY_GPIO_NAME      "recovery"
+#define WP_GPIO_NAME            "write protect"
 
 static struct gpio_desc descriptors[] = {
         { 5, DEVELOPER_GPIO_NAME },
         { 11, RECOVERY_GPIO_NAME },
-        { FAKE_GPIO_NUM, "write protect", 1},
+        { 43, WP_GPIO_NAME},
         { FAKE_GPIO_NUM, "power", 1 },  /* Power never pressed. */
         { FAKE_GPIO_NUM, "lid", 0 }     /* Lid always open. */
 };
@@ -108,5 +109,7 @@ int get_recovery_mode_switch(void)
 
 int get_write_protect_state(void)
 {
-	return 0; /* TODO */
+	int ret;
+	ret = get_switch_value(WP_GPIO_NAME);
+	return ret;
 }
