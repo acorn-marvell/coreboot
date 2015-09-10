@@ -344,6 +344,12 @@ __attribute__((weak)) void mainboard_save_dimm_info(
 					channel_info->ChannelId;
 				mem_info->dimm[index].dimm_num =
 					dimm_info->DimmId;
+				mem_info->dimm[index].mod_id =
+					dimm_info->MfgId;
+				memcpy(mem_info->dimm[index].module_part_number,
+				       dimm_info->ModulePartNum,
+				       sizeof(mem_info->
+					      dimm[index].module_part_number));
 				switch (memory_info_hob->DataWidth) {
 				default:
 				case 8:
