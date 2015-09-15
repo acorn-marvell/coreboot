@@ -28,15 +28,15 @@
  * Gpio banks ordering : GPSW, GPNC, GPEC, GPSE
  * Max direct irq (MAX_DIRECT_IRQ) is 114.
  * Size of gpio banks are
- * GPSW_SIZE = 98
- * GPNC_SIZE = 73
- * GPEC_SIZE = 27
- * GPSE_SIZE = 86
+ * GPSW_SIZE = 56
+ * GPNC_SIZE = 59
+ * GPEC_SIZE = 24
+ * GPSE_SIZE = 55
  */
 
 /*
- * gpio based irq for kbd, 17th index in North Bank
- * MAX_DIRECT_IRQ + GPSW_SIZE + 18
+ * gpio based irq for kbd, GPIO_SUS3 is the 12th index in North Bank
+ * MAX_DIRECT_IRQ + GPSW_SIZE + 12
  */
 /* ToDo: change kbd irq to gpio bank index */
 #define BOARD_I8042_IRQ			182
