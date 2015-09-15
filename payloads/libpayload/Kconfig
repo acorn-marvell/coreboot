@@ -220,6 +220,11 @@ config IPQ806X_SERIAL_CONSOLE
 	depends on SERIAL_CONSOLE
 	default n
 
+config ARMADA38X_SERIAL_CONSOLE
+        bool "IPQ806x SOC compatible serial port driver"
+        depends on SERIAL_CONSOLE
+        default n
+
 config BG4CD_SERIAL_CONSOLE
 	bool "Serial port driver for Marvell's BG4CD"
 	depends on SERIAL_CONSOLE
@@ -404,6 +409,9 @@ config TIMER_TEGRA_1US
 config TIMER_IPQ806X
 	bool "Timer for ipq806x platforms"
 
+config TIMER_ARMADA38X
+        bool "Timer for armada38x platforms"
+
 config TIMER_RK
 	bool "Timer for Rockchip"
 
@@ -455,6 +463,16 @@ config IPQ806X_TIMER_REG
 	depends on TIMER_IPQ806X
 	help
 	  Address of the register to read a free running timer value.
+
+config ARMADA38X_TIMER_FREQ
+        int "Hardware timer frequency"
+        depends on TIMER_ARMADA38X
+        default 25000000
+
+config ARMADA38X_TIMER_REG
+        hex "Timer register address"
+        default 0xF1020314
+        depends on TIMER_ARMADA38X
 
 config IPROC_PERIPH_GLB_TIM_REG_BASE
 	hex "Cygnus timer base address"
