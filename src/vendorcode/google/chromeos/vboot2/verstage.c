@@ -318,6 +318,15 @@ void verstage_main(void)
 	printk(BIOS_INFO, "Slot %c is selected\n", is_slot_a(&ctx) ? 'A' : 'B');
 	vb2_set_selected_region(wd, &fw_main);
 	timestamp_add_now(TS_END_VBOOT);
+
+	/* @SASAKI Force Depthcharge to recovery mode boot */
+	{
+		extern void vb2_check_recovery(struct vb2_context *ctx); /* vboot_reference/firmware/2lib/2misc.c */
+
+		printk(BIOS_INFO, "Force depthcharge to recovery mode\n");
+		ctx.flags |= VB2_CONTEXT_FORCE_RECOVERY_MODE;
+		vb2_check_recovery(&ctx);
+	}
 }
 
 #if IS_ENABLED(CONFIG_RETURN_FROM_VERSTAGE)
