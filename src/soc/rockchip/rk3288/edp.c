@@ -37,8 +37,8 @@
 
 static struct rk_edp rk_edp;
 
-#define MAX_CR_LOOP 5
-#define MAX_EQ_LOOP 5
+#define MAX_CR_LOOP 10
+#define MAX_EQ_LOOP 10
 #define DP_LINK_STATUS_SIZE 6
 
 static const char *voltage_names[] = {
@@ -551,15 +551,14 @@ static int rk_edp_link_train_ce(struct rk_edp *edp)
 
 	/* channel equalization loop */
 	channel_eq = 0;
-	for (tries = 0; tries < 5; tries++) {
+	for (tries = 0; tries < MAX_EQ_LOOP; tries++) {
 		rk_edp_set_link_training(edp, edp->train_set);
-		udelay(400);
+		mdelay(1);
 
 		if (rk_edp_dpcd_read_link_status(edp, status) < 0) {
 			printk(BIOS_ERR, "displayport link status failed\n");
 			return -1;
 		}
-
 		if (rk_edp_channel_eq_ok(status,
 			edp->link_train.lane_count)) {
 			channel_eq = 1;
