@@ -29,17 +29,6 @@
 #include <symbols.h>
 #include <vendorcode/google/chromeos/chromeos.h>
 
-#if 0
-//hcc
-#define A38x_CUSTOMER_BOARD_0_MPP0_7            0x00111111
-#define A38x_CUSTOMER_BOARD_0_MPP8_15           0x00600000
-#define A38x_CUSTOMER_BOARD_0_MPP16_23          0x11266005
-#define A38x_CUSTOMER_BOARD_0_MPP24_31          0x22222011
-#define A38x_CUSTOMER_BOARD_0_MPP32_39          0x22200002
-#define A38x_CUSTOMER_BOARD_0_MPP40_47          0x00000022
-#define A38x_CUSTOMER_BOARD_0_MPP48_55          0x55550555
-#define A38x_CUSTOMER_BOARD_0_MPP56_63          0x00005550
-#else
 //cube
 #define A38x_CUSTOMER_BOARD_0_MPP0_7        0x00001111  
 #define A38x_CUSTOMER_BOARD_0_MPP8_15       0x46200000
@@ -49,7 +38,6 @@
 #define A38x_CUSTOMER_BOARD_0_MPP40_47      0x00004565
 #define A38x_CUSTOMER_BOARD_0_MPP48_55      0x00444444
 #define A38x_CUSTOMER_BOARD_0_MPP56_63      0x00004444
-#endif
 
 #define DRAM_START          ((uintptr_t)_dram / MiB)
 #define DRAM_SIZE           (CONFIG_DRAM_SIZE_MB)
@@ -70,19 +58,19 @@ static void setup_pinmux(void)
 	* (volatile unsigned int *) 0xf101801c = A38x_CUSTOMER_BOARD_0_MPP56_63;
 }
 
+static void setup_win_regs(void)
+{
+	* (volatile unsigned int *) 0xf1020250 = 0x1ff00001;
+        * (volatile unsigned int *) 0xf1020254 = 0xe0000000;
+        * (volatile unsigned int *) 0xf1020200 = 0x00000000;
+}
+
 void main(void)
 {
-	volatile unsigned int reg;
-	* (volatile unsigned int *) 0xd0020080 = 0xf1000000; /* Remap internal registers to 0xf1000000 */
-	reg = * (unsigned int *) 0xf1000000; /* Forces read from the just newly remapped registers offset */
 	if (CONFIG_BOOTBLOCK_CONSOLE) {
 		console_init();
 		exception_init();
 	}
-
-	* (volatile unsigned int *) 0xf1020250 = 0x1ff00001;
-	* (volatile unsigned int *) 0xf1020254 = 0xe0000000;
-	* (volatile unsigned int *) 0xf1020200 = 0x00000000;
 
 	init_timer();
 
@@ -95,7 +83,8 @@ void main(void)
 	
 	bootblock_mainboard_init();
 
-	setup_pinmux(); /* This was previously under CONFIG_VBOTT2_VERIFY_FIRMWARE below */
+	setup_pinmux();
+	setup_win_regs();
 	
 	run_romstage();
 }

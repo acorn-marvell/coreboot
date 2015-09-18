@@ -22,6 +22,13 @@
 #include <delay.h>
 #include <thread.h>
 
+#define TIMER_CTRL_REG        0xf1020300
+#define TIMER_RELOAD_REG      0xf1020310
+#define TIMER_REG             0xf1020314
+
+
+#define MHZ_NUM               25
+
 unsigned int timer_raw_value(void);
 static inline void _delay(unsigned int delta);
 
@@ -29,18 +36,18 @@ void init_timer(void)
 {
 	unsigned int reg;
 	/* Set the reload timer */
-	* (volatile unsigned int *) 0xf1020310 = 0xffffffff;
+	* (volatile unsigned int *)TIMER_RELOAD_REG = 0xffffffff;
 	/* And the initial value */
-	* (volatile unsigned int *) 0xf1020314 = 0xffffffff;
-	reg = * (volatile unsigned int *)0xf1020300;
+	* (volatile unsigned int *)TIMER_REG = 0xffffffff;
+	reg = * (volatile unsigned int *)TIMER_CTRL_REG;
 	/* Let it start counting */
 	reg |= 0x3;
-	* (volatile unsigned int *)0xf1020300 = reg;
+	* (volatile unsigned int *)TIMER_CTRL_REG = reg;
 }
 
 unsigned int timer_raw_value(void)
 {
-        return *(volatile unsigned int *)0xF1020314;
+        return *(volatile unsigned int *)TIMER_REG;
 }
 
 static inline void _delay(unsigned int delta)
@@ -65,6 +72,6 @@ static inline void _delay(unsigned int delta)
 
 void udelay(unsigned int n)
 {
-        _delay((unsigned int)n * 25);
+        _delay((unsigned int)n * MHZ_NUM);
 }
 

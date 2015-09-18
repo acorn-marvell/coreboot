@@ -40,7 +40,7 @@ CPPFLAGS_common += -Isrc/soc/marvell/armada38x/include/
 $(objcbfs)/bootblock.raw.elf: $(objcbfs)/bootblock.elf
 	cp $< $@
 
-BIN_HDR = $(src)/soc/marvell/armada38x/bin_header/bin_hdr.bin
+BIN_HDR = $(src)/soc/marvell/armada38x/bin_header/bin_hdr
 CB_SPI = $(obj)/generated/coreboot.spi.rom
 CB_2M = $(obj)/generated/coreboot_2M.rom
 DOIMAGE = $(src)/soc/marvell/armada38x/bin_header/doimage
