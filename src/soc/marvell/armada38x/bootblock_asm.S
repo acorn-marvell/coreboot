@@ -106,6 +106,15 @@ init_stack_loop:
 	cmp	r0, r1
 	bne	init_stack_loop
 
+        ldr     r0, =_bss
+        ldr     r1, =_ebss
+        mov     r2, #0x00000000         /* prepare zero to clear BSS */
+clbss_l:
+	str     r2, [r0]
+	add     r0, #4
+	cmp     r0, r1
+	bne     clbss_l
+
 call_bootblock:
 
 	/* Restore parameter passed in by maskrom/vendor firmware. */
