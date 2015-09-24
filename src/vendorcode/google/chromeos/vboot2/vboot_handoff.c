@@ -160,19 +160,22 @@ void vboot_fill_handoff(void)
 	metadata_sz = sizeof(*fw_info);
 	metadata_sz += MAX_PARSED_FW_COMPONENTS * sizeof(fw_info->entries[0]);
 
-	fw_info = rdev_mmap(&fw_main, 0, metadata_sz);
+	/* Firmware information only required to fill when MULTIPLE_CBFS_INSTANCES is not used */
+	if (!IS_ENABLED(CONFIG_MULTIPLE_CBFS_INSTANCES)) {
+		fw_info = rdev_mmap(&fw_main, 0, metadata_sz);
 
-	if (fw_info == NULL)
-		die("failed to locate firmware components\n");
+		if (fw_info == NULL)
+			die("failed to locate firmware components\n");
 
-	/* these offset & size are used to load a rw boot loader */
-	for (i = 0; i < fw_info->num_components; i++) {
-		vh->components[i].address = region_device_offset(&fw_main);
-		vh->components[i].address += fw_info->entries[i].offset;
-		vh->components[i].size = fw_info->entries[i].size;
+		/* these offset & size are used to load a rw boot loader */
+		for (i = 0; i < fw_info->num_components; i++) {
+			vh->components[i].address = region_device_offset(&fw_main);
+			vh->components[i].address += fw_info->entries[i].offset;
+			vh->components[i].size = fw_info->entries[i].size;
+		}
+
+		rdev_munmap(&fw_main, fw_info);
 	}
-
-	rdev_munmap(&fw_main, fw_info);
 }
 
 /*
