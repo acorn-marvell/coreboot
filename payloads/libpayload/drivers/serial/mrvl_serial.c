@@ -96,12 +96,9 @@ static struct console_input_driver mrvl_serial_input =
 
 void serial_init(void)
 {
-	/*if (!lib_sysinfo.serial || !lib_sysinfo.serial->baseaddr)
+	if (!lib_sysinfo.serial || !lib_sysinfo.serial->baseaddr)
 		return;
-
 	uart_regs = (struct mrvl_uart *)(uintptr_t)lib_sysinfo.serial->baseaddr;
-	*/
-	uart_regs = (struct mrvl_uart *)0xF1012000;
 }
 
 void serial_console_init(void)
