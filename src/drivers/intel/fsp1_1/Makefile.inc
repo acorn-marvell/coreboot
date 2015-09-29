@@ -18,10 +18,15 @@
 # Foundation, Inc.
 #
 
+verstage-y += car.c
+verstage-y += fsp_util.c
+verstage-y += verstage.c
+
 romstage-y += car.c
 romstage-$(CONFIG_GOP_SUPPORT) += fsp_gop.c
 romstage-y += fsp_util.c
 romstage-y += hob.c
+romstage-$(CONFIG_SEPARATE_VERSTAGE) += romstage_after_verstage.S
 
 ramstage-$(CONFIG_GOP_SUPPORT) += fsp_gop.c
 ramstage-y += fsp_relocate.c

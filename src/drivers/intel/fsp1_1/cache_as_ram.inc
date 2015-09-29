@@ -28,6 +28,8 @@
  * performs the final stage of initialization.
  */
 
+#include <rules.h>
+
 #ifndef CONFIG_FSP_LOC
 # error "CONFIG_FSP_LOC must be set."
 #endif
@@ -168,7 +170,11 @@ before_romstage:
 	/* Call cache_as_ram_main(struct cache_as_ram_params *) */
 	call	cache_as_ram_main
 
+/* One will never return from cache_as_ram_main() in verstage so there's
+ * no such thing as after ram init. */
+#if !ENV_VERSTAGE
 #include "after_raminit.S"
+#endif
 
 	movb	$0x69, %ah
 	jmp	.Lhlt
