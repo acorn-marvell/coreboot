@@ -10,6 +10,7 @@ cbfsobj += rmodule.o
 cbfsobj += xdr.o
 cbfsobj += fit.o
 cbfsobj += partitioned_file.o
+cbfsobj += fsp1_1_relocate.o
 # LZMA
 cbfsobj += lzma.o
 cbfsobj += LzFind.o
@@ -51,6 +52,11 @@ TOOLCPPFLAGS += -I$(top)/util/cbfstool/flashmap
 TOOLCPPFLAGS += -I$(top)/util/cbfstool
 TOOLCPPFLAGS += -I$(objutil)/cbfstool
 TOOLCPPFLAGS += -I$(top)/src/commonlib/include
+# UEFI header file support. It's not pretty, but that's what we currently
+# have right now.
+TOOLCPPFLAGS += -I$(top)/src
+TOOLCPPFLAGS += -I$(top)/src/vendorcode/intel/edk2/uefi_2.4/MdePkg/Include
+
 TOOLLDFLAGS ?=
 
 ifeq ($(shell uname -s | cut -c-7 2>/dev/null), MINGW32)
@@ -74,6 +80,10 @@ $(objutil)/cbfstool/%.o: $(top)/util/cbfstool/lzma/%.c
 	$(HOSTCC) $(TOOLCPPFLAGS) $(TOOLCFLAGS) $(HOSTCFLAGS) -c -o $@ $<
 
 $(objutil)/cbfstool/%.o: $(top)/util/cbfstool/lzma/C/%.c
+	printf "    HOSTCC     $(subst $(objutil)/,,$(@))\n"
+	$(HOSTCC) $(TOOLCPPFLAGS) $(TOOLCFLAGS) $(HOSTCFLAGS) -c -o $@ $<
+
+$(objutil)/cbfstool/%.o: $(top)/src/commonlib/%.c
 	printf "    HOSTCC     $(subst $(objutil)/,,$(@))\n"
 	$(HOSTCC) $(TOOLCPPFLAGS) $(TOOLCFLAGS) $(HOSTCFLAGS) -c -o $@ $<
 
