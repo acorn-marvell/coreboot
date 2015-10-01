@@ -16,6 +16,11 @@ cbfsobj += lzma.o
 cbfsobj += LzFind.o
 cbfsobj += LzmaDec.o
 cbfsobj += LzmaEnc.o
+# CRYPTOLIB
+cbfsobj += 2sha_utility.o
+cbfsobj += 2sha1.o
+cbfsobj += 2sha256.o
+cbfsobj += 2sha512.o
 # FMAP
 cbfsobj += fmap.o
 cbfsobj += kv_pair.o
@@ -52,6 +57,9 @@ TOOLCPPFLAGS += -I$(top)/util/cbfstool/flashmap
 TOOLCPPFLAGS += -I$(top)/util/cbfstool
 TOOLCPPFLAGS += -I$(objutil)/cbfstool
 TOOLCPPFLAGS += -I$(top)/src/commonlib/include
+TOOLCPPFLAGS += -DNEED_VB2_SHA_LIBRARY
+TOOLCPPFLAGS += -I$(top)/3rdparty/vboot/firmware/include
+TOOLCPPFLAGS += -I$(top)/3rdparty/vboot/firmware/2lib/include
 # UEFI header file support. It's not pretty, but that's what we currently
 # have right now.
 TOOLCPPFLAGS += -I$(top)/src
@@ -83,6 +91,10 @@ $(objutil)/cbfstool/%.o: $(top)/util/cbfstool/lzma/C/%.c
 	printf "    HOSTCC     $(subst $(objutil)/,,$(@))\n"
 	$(HOSTCC) $(TOOLCPPFLAGS) $(TOOLCFLAGS) $(HOSTCFLAGS) -c -o $@ $<
 
+$(objutil)/cbfstool/%.o: $(top)/3rdparty/vboot/firmware/2lib/%.c
+	printf "    HOSTCC     $(subst $(objutil)/,,$(@))\n"
+	$(HOSTCC) $(TOOLCPPFLAGS) $(TOOLCFLAGS) $(HOSTCFLAGS) -c -o $@ $<
+
 $(objutil)/cbfstool/%.o: $(top)/src/commonlib/%.c
 	printf "    HOSTCC     $(subst $(objutil)/,,$(@))\n"
 	$(HOSTCC) $(TOOLCPPFLAGS) $(TOOLCFLAGS) $(HOSTCFLAGS) -c -o $@ $<
@@ -107,6 +119,9 @@ $(objutil)/cbfstool/fmd_scanner.o: TOOLCFLAGS += -Wno-redundant-decls
 $(objutil)/cbfstool/fmd_scanner.o: TOOLCFLAGS += -Wno-unused-function
 # Tolerate lzma sdk warnings
 $(objutil)/cbfstool/LzmaEnc.o: TOOLCFLAGS += -Wno-sign-compare -Wno-cast-qual
+# Tolerate vboot warnings
+$(objutil)/cbfstool/2sha_utility.o: TOOLCFLAGS += -Wno-sign-compare
+$(objutil)/cbfstool/2sha1.o: TOOLCFLAGS += -Wno-cast-qual
 
 $(objutil)/cbfstool/fmd.o: $(objutil)/cbfstool/fmd_parser.h
 $(objutil)/cbfstool/fmd.o: $(objutil)/cbfstool/fmd_scanner.h
