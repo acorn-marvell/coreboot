@@ -625,7 +625,7 @@ $(REFCODE_BLOB): $(RMODTOOL)
 	$(RMODTOOL) -i $(CONFIG_REFCODE_BLOB_FILE) -o $@
 endif
 
-$(obj)/coreboot.rom: $(obj)/coreboot.pre $(objcbfs)/ramstage.elf $(CBFSTOOL) $(call strip_quotes,$(COREBOOT_ROM_DEPENDENCIES)) $$(INTERMEDIATE) $(REFCODE_BLOB)
+$(obj)/coreboot.rom: $(obj)/coreboot.pre $(objcbfs)/ramstage.elf $(CBFSTOOL) $(call strip_quotes,$(COREBOOT_ROM_DEPENDENCIES)) $$(INTERMEDIATE) $(REFCODE_BLOB) $$(VERSTAGE_FILE)
 	@printf "    CBFS       $(subst $(obj)/,,$(@))\n"
 # The full ROM may be larger than the CBFS part, so create an empty
 # file (filled with \377 = 0xff) and copy the CBFS image over it.
@@ -669,6 +669,9 @@ ifeq ($(CONFIG_CPU_MICROCODE_ADDED_DURING_BUILD),y)
 	@printf "    UPDATE-FIT \n"
 	$(CBFSTOOL) $@.tmp update-fit -n cpu_microcode_blob.bin -x $(CONFIG_CPU_INTEL_NUM_FIT_ENTRIES)
 endif
+endif
+ifeq ($(CONFIG_SEPARATE_VERSTAGE),y)
+	$(CBFSTOOL) $@.tmp add-stage -f $(VERSTAGE_FILE) -n $(CONFIG_CBFS_PREFIX)/verstage $(CBFSTOOL_VERSTAGE_OPTS)
 endif
 	mv $@.tmp $@
 	@printf "    CBFSPRINT  $(subst $(obj)/,,$(@))\n\n"
