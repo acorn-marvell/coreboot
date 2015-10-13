@@ -29,18 +29,18 @@
 #include <symbols.h>
 #include <vendorcode/google/chromeos/chromeos.h>
 
-#if 0
-//hcc
-#define A38x_CUSTOMER_BOARD_0_MPP0_7            0x00111111
-#define A38x_CUSTOMER_BOARD_0_MPP8_15           0x00600000
-#define A38x_CUSTOMER_BOARD_0_MPP16_23          0x11266005
-#define A38x_CUSTOMER_BOARD_0_MPP24_31          0x22222011
-#define A38x_CUSTOMER_BOARD_0_MPP32_39          0x22200002
-#define A38x_CUSTOMER_BOARD_0_MPP40_47          0x00000022
-#define A38x_CUSTOMER_BOARD_0_MPP48_55          0x55550555
-#define A38x_CUSTOMER_BOARD_0_MPP56_63          0x00005550
+#if 1
+//cube proto2
+#define A38x_CUSTOMER_BOARD_0_MPP0_7        0x00001111  
+#define A38x_CUSTOMER_BOARD_0_MPP8_15       0x46200000
+#define A38x_CUSTOMER_BOARD_0_MPP16_23      0x00400444
+#define A38x_CUSTOMER_BOARD_0_MPP24_31      0x00043300
+#define A38x_CUSTOMER_BOARD_0_MPP32_39      0x44400000
+#define A38x_CUSTOMER_BOARD_0_MPP40_47      0x06604004
+#define A38x_CUSTOMER_BOARD_0_MPP48_55      0x00444444
+#define A38x_CUSTOMER_BOARD_0_MPP56_63      0x00004444
 #else
-//cube
+//cube proto1
 #define A38x_CUSTOMER_BOARD_0_MPP0_7        0x00001111  
 #define A38x_CUSTOMER_BOARD_0_MPP8_15       0x46200000
 #define A38x_CUSTOMER_BOARD_0_MPP16_23      0x55000444
