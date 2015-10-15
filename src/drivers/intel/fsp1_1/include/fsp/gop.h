@@ -21,7 +21,7 @@
 #define _FSP1_1_GOP_H_
 
 #include <rules.h>
-#include <soc/intel/common/gma.h>
+#include <fsp/gma.h>
 
 const optionrom_vbt_t *fsp_get_vbt(uint32_t *vbt_len);
 #endif /* _FSP_GOP_H_ */
