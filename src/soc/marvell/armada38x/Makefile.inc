@@ -41,15 +41,13 @@ VBOOT_STUB_DEPS += $(obj)/soc/marvell/armada38x/monotonic_timer.rmodules_$(ARCH-
 
 INCLUDES += -Isrc/soc/marvell/armada38x/include/
 
-$(objcbfs)/bootblock.raw.elf: $(objcbfs)/bootblock.elf
-	cp $< $@
-
 BIN_HDR = $(src)/soc/marvell/armada38x/bin_header/bin_hdr.bin
-CB_SPI = $(obj)/generated/coreboot.spi.rom
-CB_2M = $(obj)/generated/coreboot_2M.rom
 DOIMAGE = $(src)/soc/marvell/armada38x/bin_header/doimage
-bootable: coreboot
-	echo "Generating SPI bootable image"
-	rm -rf $(CB_SPI)
-	dd if=$(obj)/coreboot.rom of=$(CB_2M) bs=1024 count=2000 conv=notrunc
-	$(DOIMAGE) -T flash -D 0 -E 0 -S $(CONFIG_MRVL_SPI_COREBOOT_OFFSET) -G $(BIN_HDR) $(CB_2M) $(CB_SPI)
+
+$(objcbfs)/bootblock.raw: $(objcbfs)/bootblock.elf
+	@printf "    OBJCOPY    $(subst $(obj)/,,$(@))\n"
+	$(OBJCOPY_bootblock) -O binary $< $@
+
+$(objcbfs)/bootblock.bin: $(objcbfs)/bootblock.raw
+	$(DOIMAGE) -T flash -D 0 -E 0 -S $(CONFIG_MRVL_SPI_COREBOOT_OFFSET) -G $(BIN_HDR) $< $@
+	rm $<
