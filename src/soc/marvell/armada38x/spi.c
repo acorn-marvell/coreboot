@@ -182,8 +182,6 @@ static int mvSpiInit(unsigned char spiId, unsigned int serialBaudRate, MV_SPI_HA
 static int mvSysSpiInit(unsigned char spiId, unsigned int serialBaudRate);
 static void mvSpiCsAssert(unsigned char spiId);
 static int mvSpi8bitDataTxRx(unsigned char spiId, unsigned char txData, unsigned char *pRxData);
-static int is_read_in_coreboot_rom(struct spi_slave *slave, const unsigned char *dout, unsigned out_bytes);
-static size_t get_coreboot_offset(void);
 
 int mvSpiBaudRateSet(unsigned char spiId, unsigned int serialBaudRate)
 {
@@ -435,25 +433,6 @@ static int mrvl_spi_xfer(struct spi_slave *slave, unsigned int bitlen, const voi
 	return 0;
 }
 
-static size_t get_coreboot_offset(void)
-{
-        return CONFIG_MRVL_SPI_COREBOOT_OFFSET;
-}
-
-int is_read_in_coreboot_rom(struct spi_slave *slave, const unsigned char *dout, unsigned out_bytes)
-{
-	int b_read_in_coreboot = 0;
-
-	if(out_bytes>4 && dout[0]==CMD_READ_ARRAY_FAST){
-		u32 orig_addr;
-		orig_addr = ((dout[1]<<16)&0xFF0000) | ((dout[2]<<8)&0xFF00) | dout[3];
-		if((orig_addr + get_coreboot_offset()) < CONFIG_FLASHMAP_OFFSET)
-			b_read_in_coreboot = 1;
-	}
-
-	return b_read_in_coreboot;
-}
-
 struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs)
 {
         struct spi_slave *slave = &s_spi;
@@ -488,17 +467,6 @@ int spi_xfer(struct spi_slave *slave, const void *dout,
 {
 	int ret = -1;
 	if(out_bytes){
-		//add the bin_hdr len for the coreboot rom
-		if(is_read_in_coreboot_rom(slave, (const unsigned char *)dout, out_bytes)){
-			u32 orig_addr;
-			u32 new_addr;
-			unsigned char * outbuf = (unsigned char *)dout;
-			orig_addr = ((outbuf[1]<<16)&0xFF0000) | ((outbuf[2]<<8)&0xFF00) | outbuf[3];
-			new_addr = orig_addr + get_coreboot_offset();
-			outbuf[1] = (new_addr >> 16) & 0xFF;
-        		outbuf[2] = (new_addr >> 8) & 0xFF;
-        		outbuf[3] = (new_addr >> 0) & 0xFF;
-		}
 		ret = mrvl_spi_xfer(slave, out_bytes*8, dout, din, SPI_XFER_BEGIN | SPI_XFER_END);
 	}else{
 		ret = mrvl_spi_xfer(slave, in_bytes*8, dout, din,SPI_XFER_BEGIN | SPI_XFER_END);

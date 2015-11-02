@@ -27,6 +27,7 @@
 	 */
 	.section .bss, "aw" @nobits
 	.global maskrom_param
+	.align 4
 maskrom_param:
 	.word 0
 
