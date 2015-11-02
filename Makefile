@@ -89,7 +89,7 @@ PREPROCESS_ONLY := -E -P -x assembler-with-cpp -undef -I .
 DOXYGEN := doxygen
 DOXYGEN_OUTPUT_DIR := doxygen
 
-all: real-all
+all: real-all bootable
 
 # This include must come _before_ the pattern rules below!
 # Order _does_ matter for pattern rules.
