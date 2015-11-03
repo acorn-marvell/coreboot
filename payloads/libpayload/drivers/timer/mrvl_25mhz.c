@@ -37,7 +37,7 @@ uint64_t timer_raw_value(void)
 {
 	static uint64_t total_ticks = 0;
         uint8_t overflow = 0;
-        uint32_t current_ticks = readl((void *)CONFIG_LP_ARMADA38X_TIMER_REG);
+        uint32_t current_ticks = 0xffffffff - readl((void *)CONFIG_LP_ARMADA38X_TIMER_REG);
 
         /* It assumes only one overflow happened since the last call */
         if (current_ticks <= (uint32_t)total_ticks)
