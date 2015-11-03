@@ -146,26 +146,8 @@ int gettimeofday(struct timeval *tv, void *tz)
 
 static inline void _delay(uint64_t delta)
 {
-#if 0
 	uint64_t start = timer_raw_value();
 	while (timer_raw_value() - start < delta) ;
-#endif
-	uint64_t now = 0;
-        uint64_t change;
-        uint64_t last = timer_raw_value();
-        while (delta) {
-                now = timer_raw_value();
-                if (last >= now)
-                        change = (last - now);
-                else
-                        change = last + (0xffffffff - now);
- 
-                if (change < delta)
-                        delta -= change;
-                else
-                        break;
-                last = now;
-        } 
 }
 
 /**
