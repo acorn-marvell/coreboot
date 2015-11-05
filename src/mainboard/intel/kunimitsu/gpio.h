@@ -42,6 +42,9 @@
 /* GPP_B16 is WLAN_WAKE. GPP_B group is routed to DW0 in the GPE0 block */
 #define GPE_WLAN_WAKE		GPE0_DW0_16
 
+/* GPP_B5 is TOUCHPAD WAKE. GPP_B group is routed to DW0 in the GPE0 block */
+#define GPE_TOUCHPAD_WAKE       GPE0_DW0_05
+
 /* Input device interrupt configuration */
 #define TOUCHPAD_INT_L		GPP_B3_IRQ
 #define TOUCHSCREEN_INT_L	GPP_E7_IRQ
@@ -83,7 +86,7 @@ static const struct pad_config gpio_table[] = {
 /* HSJ_MIC_DET */	PAD_CFG_GPI(GPP_B2, NONE, DEEP),
 /* TRACKPAD_INT */	PAD_CFG_GPI_APIC(GPP_B3, NONE, DEEP),
 /* BT_RF_KILL */	PAD_CFG_GPO(GPP_B4, 0, DEEP),
-/* SRCCLKREQ0# */	/* GPP_B5 */
+/* SRCCLKREQ0# */	PAD_CFG_GPI_ACPI_SCI(GPP_B5, NONE, DEEP, YES), /* TOUCHPAD WAKE */
 /* WIFI_CLK_REQ */	PAD_CFG_NF(GPP_B6, NONE, DEEP, NF1),
 /* KEPLR_CLK_REQ */	PAD_CFG_NF(GPP_B7, NONE, DEEP, NF1),
 /* SRCCLKREQ3# */	/* GPP_B8 */
