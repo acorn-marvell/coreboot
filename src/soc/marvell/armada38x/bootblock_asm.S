@@ -1,22 +1,11 @@
 /*
- * Early initialization code for ARM architecture.
+ * This file is part of the coreboot project.
  *
- * This file is based off of the OMAP3530/ARM Cortex start.S file from Das
- * U-Boot, which itself got the file from armboot.
+ * Copyright 2015 Google Inc.
  *
- * Copyright (c) 2004	Texas Instruments <r-woodruff2@ti.com>
- * Copyright (c) 2001	Marius Gröger <mag@sysgo.de>
- * Copyright (c) 2002	Alex Züpke <azu@sysgo.de>
- * Copyright (c) 2002	Gary Jennejohn <garyj@denx.de>
- * Copyright (c) 2003	Richard Woodruff <r-woodruff2@ti.com>
- * Copyright (c) 2003	Kshitij <kshitij@ti.com>
- * Copyright (c) 2006-2008 Syed Mohammed Khasim <x0khasim@ti.com>
- * Copyright (c) 2013   The Chromium OS Authors
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; version 2 of
- * the License.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,8 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * Foundation, Inc.
  */
 
 #include <arch/asm.h>
