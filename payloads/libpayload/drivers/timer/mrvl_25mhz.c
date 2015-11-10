@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Google Inc.
+ * Copyright 2015 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,12 +30,12 @@
 
 uint64_t timer_hz(void)
 {
-	return CONFIG_LP_ARMADA38X_TIMER_FREQ;
+         return CONFIG_LP_ARMADA38X_TIMER_FREQ;
 }
 
 uint64_t timer_raw_value(void)
 {
-	static uint64_t total_ticks = 0;
+        static uint64_t total_ticks = 0;
         uint8_t overflow = 0;
         uint32_t current_ticks = 0xffffffff - readl((void *)CONFIG_LP_ARMADA38X_TIMER_REG);
 

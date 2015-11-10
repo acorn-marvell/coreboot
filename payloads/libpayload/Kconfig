@@ -220,6 +220,11 @@ config IPQ806X_SERIAL_CONSOLE
 	depends on SERIAL_CONSOLE
 	default n
 
+config ARMADA38X_SERIAL_CONSOLE
+        bool "Armada38x SOC compatible serial port driver"
+        depends on SERIAL_CONSOLE
+        default n
+
 config BG4CD_SERIAL_CONSOLE
 	bool "Serial port driver for Marvell's BG4CD"
 	depends on SERIAL_CONSOLE
