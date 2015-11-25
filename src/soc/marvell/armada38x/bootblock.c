@@ -28,6 +28,7 @@
 #include <arch/stages.h>
 #include <symbols.h>
 #include <vendorcode/google/chromeos/chromeos.h>
+#include <soc/i2c.h>
 
 #if 1
 //cube proto2
@@ -70,6 +71,16 @@ static void setup_pinmux(void)
 	* (volatile unsigned int *) 0xf101801c = A38x_CUSTOMER_BOARD_0_MPP56_63;
 }
 
+static void fix_usb3_detect(void)
+{
+	/* 1. turn on mux */
+	turn_on_mux();
+	/* 2. Reset USB3 Controller */
+	* (volatile unsigned int *) 0xf10f8020 = 0x2;
+        /* 3. Config Serdes Delay */
+	* (volatile unsigned int *) 0xf10a2920 = 0x5020;
+}
+
 void main(void)
 {
 	volatile unsigned int reg;
@@ -97,6 +108,8 @@ void main(void)
 	bootblock_mainboard_init();
 
 	setup_pinmux(); /* This was previously under CONFIG_VBOTT2_VERIFY_FIRMWARE below */
+
+	fix_usb3_detect();
 
 	cbfs_set_header_offset(0);
 	if (IS_ENABLED(CONFIG_VBOOT2_VERIFY_FIRMWARE)) {

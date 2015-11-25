@@ -1,6 +1,7 @@
 bootblock-y += bootblock.c
 bootblock-y += bootblock_asm.S
 bootblock-y += spi.c
+bootblock-y += i2c.c
 bootblock-y += gpio.c
 bootblock-y += maincpu.S
 bootblock-y += monotonic_timer.c

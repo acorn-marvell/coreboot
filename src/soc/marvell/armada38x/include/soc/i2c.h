@@ -98,4 +98,6 @@
 #define TWSI_SEC_AD_PLS_RD_BIT_TRA_ACK_NOT_REC                    0xE8
 #define TWSI_NO_REL_STS_INT_FLAG_IS_KEPT_0                        0xF8
 
+void turn_on_mux(void);
+
 #endif // __SOC_MARVELL_ARMADA38X_I2C_H__

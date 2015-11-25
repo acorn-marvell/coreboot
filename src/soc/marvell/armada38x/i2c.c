@@ -1164,6 +1164,134 @@ static int mvTwsiWrite(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pBlo
 	return MV_OK;
 }
 
+static int mvTwsiWriteAndRead(uint8_t chanNum, MV_TWSI_SLAVE *pTwsiSlave, uint8_t *pWriteBlock, uint32_t writeBlockSize, uint8_t *pReadBlock, uint32_t readBlockSize)
+{
+	int ret = MV_FAIL;
+	uint32_t counter = 0;
+	if ((NULL == pWriteBlock) || (NULL == pReadBlock) || (NULL == pTwsiSlave))
+		return MV_BAD_PARAM;
+
+	do	{
+		if (counter > 0) /* wait for 1 mili sec for the clear to take effect */
+			mdelay(1);
+
+		counter++;
+
+		 ret = mvTwsiStartBitSet(chanNum);
+
+		if (MV_RETRY == ret)
+			continue;
+
+		else if (MV_OK != ret) {
+			mvTwsiStopBitSet(chanNum);
+			mvOsPrintf("mvTwsiWrite: mvTwsiStartBitSet faild\n");
+			return MV_FAIL;
+		}
+
+		mvOsPrintf("TWSI: mvTwsiEepromWrite after mvTwsiStartBitSet\n");
+		ret = mvTwsiAddrSet(chanNum, &(pTwsiSlave->slaveAddr), MV_TWSI_WRITE);
+		if (MV_RETRY == ret)
+			continue;
+		else if (MV_OK != ret) {
+			mvTwsiStopBitSet(chanNum);
+			mvOsPrintf("mvTwsiWrite: mvTwsiAddrSet faild\n");
+			return MV_FAIL;
+		}
+		mvOsPrintf("mvTwsiWrite :mvTwsiEepromWrite after mvTwsiAddrSet\n");
+
+		ret = twsiDataTransmit(chanNum, pWriteBlock, writeBlockSize);
+		if (MV_RETRY == ret)
+			continue;
+		else if (MV_OK != ret) {
+			mvTwsiStopBitSet(chanNum);
+			mvOsPrintf("mvTwsiWrite: twsiDataTransmit faild\n");
+			return MV_FAIL;
+		}
+		mvOsPrintf("mvTwsiWrite: mvTwsiEepromWrite after twsiDataTransmit\n");
+
+		ret = mvTwsiStartBitSet(chanNum);
+		
+		if (MV_RETRY == ret)
+			continue;
+
+		else if (MV_OK != ret) {
+			mvTwsiStopBitSet(chanNum);
+			mvOsPrintf("mvTwsiWrite: mvTwsiStartBitSet faild\n");
+			return MV_FAIL;
+		}
+
+		ret =  mvTwsiAddrSet(chanNum, &(pTwsiSlave->slaveAddr), MV_TWSI_READ);
+		if (MV_RETRY == ret)
+			continue;
+		else if (MV_OK != ret) {
+			mvTwsiStopBitSet(chanNum);
+			mvOsPrintf("mvTwsiRead: mvTwsiAddrSet 2 Faild\n");
+			return MV_FAIL;
+		}
+		mvOsPrintf("TWSI: mvTwsiEepromRead after mvTwsiAddrSet\n");
+		ret = twsiDataReceive(chanNum, pReadBlock, readBlockSize);
+		if (MV_RETRY == ret)
+			continue;
+		else if (MV_OK != ret) {
+			mvTwsiStopBitSet(chanNum);
+			mvOsPrintf("mvTwsiRead: twsiDataReceive Faild\n");
+			return MV_FAIL;
+		}
+		mvOsPrintf("TWSI: mvTwsiEepromRead after twsiDataReceive\n");
+
+		ret = mvTwsiStopBitSet(chanNum);
+		if (MV_RETRY == ret)
+			continue;
+		else if (MV_OK != ret) {
+			mvOsPrintf("mvTwsiWrite: mvTwsiStopBitSet faild in last mvTwsiWrite\n");
+			return MV_FAIL;
+		}
+		mvOsPrintf("mvTwsiWrite: mvTwsiEepromWrite after mvTwsiStopBitSet\n");
+	} while ((MV_RETRY == ret) && (counter < MAX_RETRY_CNT));
+
+	twsiAckBitSet(chanNum);
+
+	if (counter == MAX_RETRY_CNT)
+		mvOsPrintf("mvTwsiWrite: Retry Expire\n");
+
+	return MV_OK;
+}
+
+void turn_on_mux(void)
+{
+	MV_TWSI_SLAVE i2cSlave;
+	int     ret;
+	uint8_t writeDataBlock1[16] = {0xda, 0x03, 0xf3, 0x01, 0x01, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00};
+	uint8_t writeDataBlock2[16] = {0xda, 0x03, 0xf4, 0x01, 0x01, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00};
+	uint8_t readDataBlock[64];
+
+	i2cSlave.slaveAddr.address = 0x1e;
+	i2cSlave.slaveAddr.type = ADDR7_BIT;
+	i2cSlave.validOffset = MV_FALSE;
+	i2cSlave.offset = 0;
+	i2cSlave.moreThan256 = MV_FALSE;
+
+	mvTwsiInit(0, TWSI_SPEED, mvBoardTclkGet(), &i2cSlave.slaveAddr, 0);
+	
+	mvOsPrintf("mvTwsiWriteAndRead writeDataBlock1......");
+	ret = mvTwsiWriteAndRead(0, &i2cSlave, writeDataBlock1, 13, readDataBlock, 45);
+	if (ret != MV_OK)
+	{
+		mvOsPrintf("mvTwsiWriteAndRead writeDataBlock1 returned %d\n", ret);
+	}
+	mvOsPrintf("Done\n");
+		
+	mvOsPrintf("mvTwsiWriteAndRead writeDataBlock2......");
+
+	ret = mvTwsiWriteAndRead(0, &i2cSlave, writeDataBlock2, 13, readDataBlock, 45);
+	if (ret != MV_OK)
+	{
+		mvOsPrintf("mvTwsiWrite writeDataBlock2 returned %d\n", ret);
+	}
+	mvOsPrintf("Done\n");
+}
+
+
 static int i2c_init(unsigned bus)
 {
 	if(bus >= MAX_I2C_NUM){
